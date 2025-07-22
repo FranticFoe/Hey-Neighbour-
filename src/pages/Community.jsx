@@ -193,7 +193,7 @@ export default function Community() {
                     </Modal.Footer>
                 </Modal>
 
-                {/* ✅ Map Modal Renders Separately Outside Other Modals */}
+                {/*  Map Modal Renders Separately Outside Other Modals */}
                 {showJoinByLocationMap && (
                     <JoinCommunityMap
                         show={showJoinByLocationMap}
