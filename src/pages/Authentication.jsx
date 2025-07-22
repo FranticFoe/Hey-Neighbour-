@@ -60,6 +60,7 @@ export default function Authenticate() {
                     const res = await signInWithEmailAndPassword(auth, normalizedEmail, password);
                     console.log("Succesfully logged in user", res.user);
                     resetFields();
+                    navigate("/user")
                 } catch (err) {
                     console.error("Error in Firebase Login", err);
                 }

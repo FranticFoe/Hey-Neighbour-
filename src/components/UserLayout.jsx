@@ -16,9 +16,11 @@ export default function UserLayout() {
                         <Nav className="ms-auto align-items-center gap-3">
                             <Nav.Link as={Link} to="/user">Home</Nav.Link>
                             <div className="vr bg-light opacity-50 mt-2" style={{ height: "24px" }} />
-                            <Nav.Link as={Link} to="/user">Community </Nav.Link>
+                            <Nav.Link as={Link} to="/user/community">Community </Nav.Link>
                             <div className="vr bg-light opacity-50 mt-2" style={{ height: "24px" }} />
                             <Nav.Link as={Link} to="/user">Messages</Nav.Link>
+                            <div className="vr bg-light opacity-50 mt-2" style={{ height: "24px" }} />
+                            <Nav.Link as={Link} to="/user/logout">Logout</Nav.Link>
                         </Nav>
                     </Navbar.Collapse>
                 </Container>

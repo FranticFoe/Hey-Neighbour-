@@ -6,6 +6,8 @@ import { AuthProvider } from './components/AuthProvider'
 import Authenticate from './pages/Authentication'
 import UserPage from './pages/UserPage'
 import UserLayout from './components/UserLayout'
+import Community from './pages/Community'
+import LogOut from './components/LogOut'
 function App() {
 
   function Layout() {
@@ -46,7 +48,8 @@ function App() {
             </Route>
             <Route path="/user" element={<UserLayout />}>
               <Route index element={<UserPage />} />
-              <Route path="/community" element={<Community />} />
+              <Route path="community" element={<Community />} />
+              <Route path="logout" element={<LogOut />} />
             </Route>
 
           </Routes>

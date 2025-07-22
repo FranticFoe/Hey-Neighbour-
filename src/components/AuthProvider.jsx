@@ -10,16 +10,16 @@ export function AuthProvider({ children }) {
 
     useEffect(() => {
         return auth.onAuthStateChanged((user) => {
-            console.log("Identified user has been changed", auth)
-            console.log("This is currentuser", user)
-            console.log(user.displayName)
+            // console.log("Identified user has been changed", auth)
+            // console.log("This is currentuser", user)
+            // console.log(user.displayName)
             setCurrentUser(user);
             setLoading(false);
 
         })
     }, [])
 
-    // const value = 
+    // const value = { currentUser }
 
     return (
         <AuthContext.Provider value={{ currentUser }}>
