@@ -4,6 +4,7 @@ import axios from "axios";
 import { AuthContext } from "../components/AuthProvider";
 import CreateCommunityModal from "../components/CreateCommunityModal";
 import JoinCommunityMap from "../components/JoinByLocation";
+import CommunityTabs from "../components/CommunityTab";
 
 export default function Community() {
     const [hasCommunity, setHasCommunity] = useState(false);
@@ -19,8 +20,8 @@ export default function Community() {
 
     const [createModalShow, setCreateModalShow] = useState(false);
 
-    const [latitude, setLatitude] = useState(null);
-    const [longitude, setLongitude] = useState(null);
+    const [, setLatitude] = useState(null);
+    const [, setLongitude] = useState(null);
 
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
@@ -207,7 +208,7 @@ export default function Community() {
     return (
         <div className="p-4">
             <h3>Your Community: {communityName}</h3>
-            {/* You can display events or help tasks here */}
+            <CommunityTabs />
         </div>
     );
 }

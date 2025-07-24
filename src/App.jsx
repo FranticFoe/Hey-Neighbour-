@@ -8,6 +8,8 @@ import UserPage from './pages/UserPage'
 import UserLayout from './components/UserLayout'
 import Community from './pages/Community'
 import LogOut from './components/LogOut'
+import Messages from './pages/Messages'
+
 function App() {
 
   function Layout() {
@@ -49,6 +51,7 @@ function App() {
             <Route path="/user" element={<UserLayout />}>
               <Route index element={<UserPage />} />
               <Route path="community" element={<Community />} />
+              <Route path="messages" element={<Messages />} />
               <Route path="logout" element={<LogOut />} />
             </Route>
 

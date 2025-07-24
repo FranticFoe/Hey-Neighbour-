@@ -14,6 +14,8 @@ export default function Authenticate() {
     const [mode, setMode] = useState("login");
     const auth = getAuth();
     const { currentUser } = useContext(AuthContext)
+    const [showPasswordError, setShowPasswordError] = useState(false);
+
     const url = "https://31330b9b-30e1-49d0-a994-e29bc7e7c6b7-00-3toa7yx0y1d12.sisko.replit.dev"
 
     useEffect(() => {
@@ -22,6 +24,21 @@ export default function Authenticate() {
 
     const handleSignUp = async (e) => {
         e.preventDefault();
+        setShowPasswordError(false); // reset on new attempt
+
+        function validatePassword(password) {
+            if (password.length < 6) {
+                return "Password must be at least 6 characters long.";
+            }
+            return null;
+        }
+
+        const error = validatePassword(password);
+        if (error) {
+            setShowPasswordError(true); // Show the error after submit
+            return;
+        }
+
         try {
             const backendRes = await axios.post(`${url}/signup`, { email, username });
             if (backendRes.data) {
@@ -43,6 +60,8 @@ export default function Authenticate() {
             console.error("Signup error (backend):", err);
         }
     };
+
+
 
 
 
@@ -176,6 +195,11 @@ export default function Authenticate() {
                                 required
                             />
                         </Form.Group>
+                        {mode === "signup" && showPasswordError && (
+                            <p style={{ color: "red", marginBottom: "10px" }}>
+                                The password must be at least 6 characters long.
+                            </p>
+                        )}
 
                         <Button
                             type="submit"

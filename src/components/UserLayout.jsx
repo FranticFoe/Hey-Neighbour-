@@ -18,7 +18,7 @@ export default function UserLayout() {
                             <div className="vr bg-light opacity-50 mt-2" style={{ height: "24px" }} />
                             <Nav.Link as={Link} to="/user/community">Community </Nav.Link>
                             <div className="vr bg-light opacity-50 mt-2" style={{ height: "24px" }} />
-                            <Nav.Link as={Link} to="/user">Messages</Nav.Link>
+                            <Nav.Link as={Link} to="/user/messages">Messages</Nav.Link>
                             <div className="vr bg-light opacity-50 mt-2" style={{ height: "24px" }} />
                             <Nav.Link as={Link} to="/user/logout">Logout</Nav.Link>
                         </Nav>
