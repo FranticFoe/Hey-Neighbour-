@@ -97,32 +97,7 @@ export default function CommunityTabs() {
         }
     };
 
-    useEffect(() => {
-        if (!username) return;
 
-        async function fetchCommunity() {
-            try {
-                const res = await axios.get(`${url}/neighbour/community/${username}`);
-                const name = res.data.community[0]?.community_name;
-                setCommunityName(name);
-
-                // Check if user is leader
-                const leaderRes = await axios.get(
-                    `${url}/neighbour/isLeader/${username}/community/${name}`
-                );
-                console.log("leaderRes", leaderRes)
-                setIsLeader(leaderRes.data.status);
-
-                // Fetch events
-                const eventsRes = await axios.get(`${url}/neighbour/events/${name}`);
-                setEvents(eventsRes.data.events || []);
-            } catch (err) {
-                console.error("Error loading community data:", err);
-            }
-        }
-        fetchHelpRequests();
-        fetchCommunity();
-    }, [username]);
 
     const handleCreateEvent = async (e) => {
         e.preventDefault();
@@ -151,6 +126,59 @@ export default function CommunityTabs() {
         }
     };
 
+    const [shareList, setShareList] = useState([]);
+    const [showShareForm, setShowShareForm] = useState(false);
+    const [shareForm, setShareForm] = useState({
+        title: "",
+        description: "",
+        is_borrowable: true,
+        borrow_fee: "",
+    });
+
+    const fetchShares = async () => {
+        try {
+            const res = await axios.get(`${url}/neighbour/share/${communityName}`);
+            const visibleShares = res.data.shares.filter(share => {
+                if (share.poster_username === username) {
+                    return true;
+                } else {
+                    return share.is_borrowable && !share.is_borrowed;
+                }
+            });
+            setShareList(visibleShares);
+        } catch (err) {
+            console.error("Failed to fetch shares", err);
+        }
+    };
+
+    useEffect(() => {
+        if (!username) return;
+
+        async function fetchCommunity() {
+            try {
+                const res = await axios.get(`${url}/neighbour/community/${username}`);
+                const name = res.data.community[0]?.community_name;
+                setCommunityName(name);
+
+                // Check if user is leader
+                const leaderRes = await axios.get(
+                    `${url}/neighbour/isLeader/${username}/community/${name}`
+                );
+                console.log("leaderRes", leaderRes)
+                setIsLeader(leaderRes.data.status);
+
+                // Fetch events
+                const eventsRes = await axios.get(`${url}/neighbour/events/${name}`);
+                setEvents(eventsRes.data.events || []);
+            } catch (err) {
+                console.error("Error loading community data:", err);
+            }
+        }
+        fetchHelpRequests();
+        fetchCommunity();
+    }, [username]);
+    fetchShares();
+
     return (
         <Container className="mt-4">
             <ToggleButtonGroup
@@ -165,6 +193,11 @@ export default function CommunityTabs() {
                 <ToggleButton id="tab-help" value={"help"} variant="outline-secondary">
                     Help Required
                 </ToggleButton>
+
+                <ToggleButton id="tab-borrow" value={"borrow"} variant="outline-success">
+                    Borrow & Share
+                </ToggleButton>
+
             </ToggleButtonGroup>
 
             <Card className="mt-3">
@@ -361,6 +394,7 @@ export default function CommunityTabs() {
                                 </Form>
                             )}
 
+
                             <hr />
                             <h5>Help Requests</h5>
                             <table className="table table-bordered">
@@ -368,6 +402,7 @@ export default function CommunityTabs() {
                                     <tr>
                                         <th>Title</th>
                                         <th>Description</th>
+                                        <th>Rewards</th>
                                         <th>Date</th>
                                         <th>Time</th>
                                         <th>Capacity</th>
@@ -385,6 +420,7 @@ export default function CommunityTabs() {
                                         <tr key={task.id}>
                                             <td>{task.task_title}</td>
                                             <td>{task.description}</td>
+                                            <td>{!task.task_rewards ? "none" : task.task_rewards}</td>
                                             <td>{task.date === null ? "any" : task.date}</td>
                                             <td>{task.start_time === null ? "any" : task.start_time} - {task.end_time === null ? "" : task.end_time}</td>
                                             <td>{task.capacity ?? "∞"}</td>
@@ -405,6 +441,148 @@ export default function CommunityTabs() {
                             </table>
                         </>
                     )}
+
+                    {activeTab === "borrow" && (
+                        <>
+                            <Button className="mb-3" onClick={() => setShowShareForm(!showShareForm)}>
+                                {showShareForm ? "Close Share Form" : "Share Items to Neighbours"}
+                            </Button>
+
+                            {showShareForm && (
+                                <Form
+                                    onSubmit={async (e) => {
+                                        e.preventDefault();
+                                        try {
+                                            await axios.post(`${url}/neighbour/share`, {
+                                                username,
+                                                community_name: communityName,
+                                                title: shareForm.title,
+                                                description: shareForm.description,
+                                                is_borrowable: shareForm.is_borrowable,
+                                                borrow_fee: shareForm.borrow_fee,
+                                            });
+                                            alert("Item shared");
+                                            setShowShareForm(false);
+                                            setShareForm({
+                                                title: "",
+                                                description: "",
+                                                is_borrowable: true,
+                                                borrow_fee: "",
+                                            });
+                                            fetchShares();
+                                        } catch (err) {
+                                            console.error("Error sharing item", err);
+                                            alert("Failed to share item");
+                                        }
+                                    }}
+                                >
+                                    <Form.Group>
+                                        <Form.Label>Title</Form.Label>
+                                        <Form.Control
+                                            required
+                                            value={shareForm.title}
+                                            onChange={(e) => setShareForm({ ...shareForm, title: e.target.value })}
+                                        />
+                                    </Form.Group>
+                                    <Form.Group>
+                                        <Form.Label>Description</Form.Label>
+                                        <Form.Control
+                                            required
+                                            value={shareForm.description}
+                                            onChange={(e) => setShareForm({ ...shareForm, description: e.target.value })}
+                                        />
+                                    </Form.Group>
+                                    <Form.Group>
+                                        <Form.Check
+                                            type="checkbox"
+                                            label="Is Borrowable?"
+                                            checked={shareForm.is_borrowable}
+                                            onChange={(e) => setShareForm({ ...shareForm, is_borrowable: e.target.checked })}
+                                        />
+                                    </Form.Group>
+                                    <Form.Group>
+                                        <Form.Label>Borrow Fee</Form.Label>
+                                        <Form.Control
+                                            value={shareForm.borrow_fee}
+                                            onChange={(e) => setShareForm({ ...shareForm, borrow_fee: e.target.value })}
+                                        />
+                                    </Form.Group>
+                                    <Button type="submit" className="mt-2">Share Item</Button>
+                                </Form>
+                            )}
+
+                            <hr />
+                            <h5>Available Items</h5>
+                            <table className="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Description</th>
+                                        <th>Borrow Fee</th>
+                                        <th>Shared By</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {shareList.length === 0 && (
+                                        <tr><td colSpan="5">No items available.</td></tr>
+                                    )}
+                                    {shareList.map((item) => (
+                                        <tr key={item.id}>
+                                            <td>{item.item_name}</td>
+                                            <td>{item.item_description}</td>
+                                            <td>{item.borrow_fee || "Free"}</td>
+                                            <td>{item.poster_username}</td>
+                                            <td>
+                                                {item.poster_username === username ? (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="warning"
+                                                        disabled={!item.is_borrowed}
+                                                        onClick={async () => {
+                                                            try {
+                                                                await axios.post(`${url}/neighbour/share/return`, {
+                                                                    username,
+                                                                    item_name: item.item_name,
+                                                                });
+                                                                alert("Item marked as returned");
+                                                                fetchShares();
+                                                            } catch (err) {
+                                                                console.error("Return failed", err);
+                                                            }
+                                                        }}
+                                                    >
+                                                        Mark Returned
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="success"
+                                                        disabled={item.is_borrowed}
+                                                        onClick={async () => {
+                                                            try {
+                                                                await axios.post(`${url}/neighbour/share/borrow`, {
+                                                                    username,
+                                                                    item_name: item.item_name,
+                                                                });
+                                                                alert("Item borrowed");
+                                                                fetchShares();
+                                                            } catch (err) {
+                                                                console.error("Borrow failed", err);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {item.is_borrowed ? "Unavailable" : "Borrow"}
+                                                    </Button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </>
+                    )}
+
 
                 </Card.Body>
             </Card>
