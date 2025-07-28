@@ -6,9 +6,15 @@ import {
     ToggleButton,
     Button,
     Form,
+    Image,
+    Row,
+    Col,
+    Badge
 } from "react-bootstrap";
 import axios from "axios";
 import { AuthContext } from "./AuthProvider";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "../firebase";
 
 export default function CommunityTabs() {
     const url =
@@ -19,6 +25,8 @@ export default function CommunityTabs() {
     const [isLeader, setIsLeader] = useState(false);
     const [showAddEventForm, setShowAddEventForm] = useState(false);
     const [communityName, setCommunityName] = useState("");
+    const [newImage, setNewImage] = useState(null);
+    const [previewImage, setPreviewImage] = useState(null);
     const [newEvent, setNewEvent] = useState({
         event_title: "",
         event_description: "",
@@ -56,6 +64,22 @@ export default function CommunityTabs() {
         fetchHelpRequests();
     }, [communityName]);
 
+    function formatTime(time24) {
+        const [hour, minute] = time24.split(":");
+        const h = parseInt(hour);
+        const suffix = h >= 12 ? "PM" : "AM";
+        const hour12 = ((h + 11) % 12 + 1);
+        return `${hour12}:${minute} ${suffix}`;
+    }
+
+    function formatDate(isoDate) {
+        const d = new Date(isoDate);
+        return d.toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+        });
+    }
 
     const handleSubmitHelp = async (e) => {
         e.preventDefault();
@@ -102,11 +126,26 @@ export default function CommunityTabs() {
     const handleCreateEvent = async (e) => {
         e.preventDefault();
         try {
-            await axios.post(`${url}/neighbour/create/events`, {
+            let downloadURL = "";
+
+
+            if (newImage) {
+                const imageRef = ref(storage, `events/${newImage.name}`);
+                await uploadBytes(imageRef, newImage);
+                downloadURL = await getDownloadURL(imageRef);
+            }
+
+
+            const eventToSubmit = {
                 ...newEvent,
                 community_name: communityName,
                 leader_name: username,
-            });
+                event_image_url: downloadURL,
+            };
+
+
+            await axios.post(`${url}/neighbour/create/events`, eventToSubmit);
+
             alert("Event created");
             setShowAddEventForm(false);
             setNewEvent({
@@ -115,9 +154,12 @@ export default function CommunityTabs() {
                 date: "",
                 start_time: "",
                 end_time: "",
+                event_image_url: "",
             });
+            setNewImage(null);
+            setPreviewImage(null);
 
-            // Refresh event list
+
             const res = await axios.get(`${url}/neighbour/events/${communityName}`);
             setEvents(res.data.events || []);
         } catch (err) {
@@ -125,6 +167,7 @@ export default function CommunityTabs() {
             alert("Failed to create event");
         }
     };
+
 
     const [shareList, setShareList] = useState([]);
     const [showShareForm, setShowShareForm] = useState(false);
@@ -204,14 +247,54 @@ export default function CommunityTabs() {
                 <Card.Body>
                     {activeTab === "event" && (
                         <>
-                            {isLeader && !showAddEventForm && (
-                                <Button variant="success" onClick={() => setShowAddEventForm(true)}>
-                                    Add Event
-                                </Button>
-                            )}
 
                             {isLeader && showAddEventForm && (
                                 <Form onSubmit={handleCreateEvent} className="mt-3">
+
+                                    <Form.Group controlId="formImage" className="mt-3">
+                                        <Form.Label>Event Image</Form.Label>
+                                        <Form.Control
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                                const file = e.target.files[0];
+                                                if (file) {
+                                                    setNewImage(file);
+
+                                                    const reader = new FileReader();
+                                                    reader.onloadend = () => {
+                                                        setPreviewImage(reader.result); // base64 preview
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                        />
+                                    </Form.Group>
+
+                                    {previewImage && (
+                                        <div className="mt-2">
+                                            <div
+                                                className="p-2 mt-2 bg-secondary text-white rounded"
+                                                role="alert"
+                                                style={{ fontSize: "0.9rem" }}
+                                            >
+                                                <div className="d-flex align-items-center mb-2">
+                                                    <i className="bi bi-check-circle-fill me-2"></i>
+                                                    <span>Image selected : </span>
+                                                </div>
+
+                                                <div className="text-muted" style={{ fontSize: "0.8rem" }}>
+                                                    <Image
+                                                        src={previewImage}
+                                                        fluid
+                                                        style={{ maxHeight: 100, borderRadius: 8, border: "3px solid white" }}
+                                                        className="mx-1"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <Form.Group>
                                         <Form.Label>Event Title</Form.Label>
                                         <Form.Control
@@ -298,25 +381,68 @@ export default function CommunityTabs() {
                                     </div>
                                 </Form>
                             )}
-
+                            <h3 className="text-center fw-bold">Upcoming Events</h3>
                             <hr />
-                            <h5>Upcoming Events</h5>
+                            {isLeader && !showAddEventForm && (
+                                <Button variant="success" onClick={() => setShowAddEventForm(true)}>
+                                    Add Event
+                                </Button>
+                            )}
+
                             {events.length === 0 ? (
-                                <p>No events yet.</p>
+                                <p className="text-center text-muted">📭 No events yet. Check back soon!</p>
                             ) : (
                                 events.map((event, idx) => (
-                                    <Card key={idx} className="my-2">
-                                        <Card.Body>
-                                            <Card.Title>{event.event_title}</Card.Title>
-                                            <Card.Text>{event.event_description}</Card.Text>
-                                            <p>
-                                                <strong>Date:</strong> {event.date}
-                                                <br />
-                                                <strong>Time:</strong> {event.start_time} - {event.end_time}
-                                            </p>
 
+                                    <Card key={idx} className='mb-4 mt-4 border border-black border-1 shadow-sm' style={{ backgroundColor: "#fdfdfd" }}>
+                                        <span className="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-warning" style={{ zIndex: 2 }}>
+                                            📌
+                                        </span>
+                                        {/* Image Header */}
+                                        {event.event_image_url && (
+                                            <div
+                                                style={{
+                                                    position: "relative",
+                                                    width: "100%",
+                                                    paddingTop: "56.25%", // 16:9 ratio
+                                                    overflow: "hidden",
+                                                    backgroundColor: "#f8f9fa",
+                                                }}
+                                            >
+                                                <Card.Img
+                                                    src={event.event_image_url}
+                                                    alt={event.event_title}
+                                                    style={{
+                                                        position: "absolute",
+                                                        maxWidth: "100%",
+                                                        maxHeight: "100%",
+                                                        objectFit: "contain",
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: "100%",
+                                                        height: "100%",
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Content */}
+                                        <Card.Body className="px-4 py-3">
+                                            <Card.Title className="fw-bold text-center fs-4 text-primary mb-3">
+                                                {event.event_title}
+                                            </Card.Title>
+
+                                            <div className="mb-3 text-center ">
+                                                <div><strong>📅Date:</strong> {formatDate(event.date)}</div>
+                                                <div><strong>⏰Time:</strong> {formatTime(event.start_time)} – {formatTime(event.end_time)}</div>
+                                            </div>
+
+                                            <Card.Text className="text-dark text-center" style={{ fontSize: "1rem", lineHeight: "1.5" }}>
+                                                {event.event_description}
+                                            </Card.Text>
                                         </Card.Body>
                                     </Card>
+
                                 ))
                             )}
                         </>

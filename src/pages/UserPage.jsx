@@ -37,6 +37,15 @@ export default function UserPage() {
     const [previewImage, setPreviewImage] = useState(null);
     const [newBanner, setNewBanner] = useState(null);
 
+    function formatDate(isoDate) {
+        const d = new Date(isoDate);
+        return d.toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+        });
+    }
+
     useEffect(() => {
         async function fetchProfile() {
             try {
@@ -154,9 +163,9 @@ export default function UserPage() {
                 <p className="text-muted" style={{ marginLeft: 10 }}>
                     @{profile.username}
                 </p>
-                <p style={{ marginLeft: 10 }}>{profile.profile_description || "This user hasn't written anything about themselves yet."}</p>
+                <p style={{ marginLeft: 10 }}>{profile.profile_description || <p className="text-muted">This user hasn't written anything about themselves yet.</p>}</p>
                 <p className="text-muted" style={{ marginLeft: 10 }}>
-                    <i className="bi bi-calendar3"></i> Joined: {new Date(profile.joined_date).toLocaleDateString()}
+                    <i className="bi bi-calendar3"></i> Joined: {formatDate(profile.joined_date)}
                 </p>
             </div>
 
