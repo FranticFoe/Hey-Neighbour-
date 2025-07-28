@@ -5,3 +5,15 @@
     border-radius: 0.375rem;
     padding: 0.5rem;
 }
+
+.card-group-hover .edit-btn,
+.card-group-hover .delete-btn {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    z-index: 3;
+}
+
+.card-group-hover:hover .edit-btn,
+.card-group-hover:hover .delete-btn {
+    opacity: 1;
+}

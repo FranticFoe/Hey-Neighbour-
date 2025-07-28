@@ -7,14 +7,14 @@ import {
     Button,
     Form,
     Image,
-    Row,
-    Col,
-    Badge
+    Modal,
 } from "react-bootstrap";
 import axios from "axios";
 import { AuthContext } from "./AuthProvider";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase";
+import "../App.css";
+
 
 export default function CommunityTabs() {
     const url =
@@ -34,6 +34,11 @@ export default function CommunityTabs() {
         start_time: "",
         end_time: "",
     });
+    const [editingEvent, setEditingEvent] = useState(null);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [eventToDelete, setEventToDelete] = useState(null);
+    const [showResponseModal, setShowResponseModal] = useState(false);
+    const [responseMessage, setResponseMessage] = useState("");
 
     const [showHelpForm, setShowHelpForm] = useState(false);
     const [helpList, setHelpList] = useState([]);
@@ -71,6 +76,7 @@ export default function CommunityTabs() {
         const hour12 = ((h + 11) % 12 + 1);
         return `${hour12}:${minute} ${suffix}`;
     }
+
 
     function formatDate(isoDate) {
         const d = new Date(isoDate);
@@ -126,8 +132,7 @@ export default function CommunityTabs() {
     const handleCreateEvent = async (e) => {
         e.preventDefault();
         try {
-            let downloadURL = "";
-
+            let downloadURL = newEvent.event_image_url || "";
 
             if (newImage) {
                 const imageRef = ref(storage, `events/${newImage.name}`);
@@ -135,18 +140,23 @@ export default function CommunityTabs() {
                 downloadURL = await getDownloadURL(imageRef);
             }
 
-
-            const eventToSubmit = {
+            const eventPayload = {
                 ...newEvent,
                 community_name: communityName,
                 leader_name: username,
                 event_image_url: downloadURL,
+                event_id: editingEvent, // used in update
             };
 
+            if (editingEvent) {
+                await axios.put(`${url}/neighbour/events/update`, eventPayload);
+                alert("Event updated");
+            } else {
+                await axios.post(`${url}/neighbour/create/events`, eventPayload);
+                alert("Event created");
+            }
 
-            await axios.post(`${url}/neighbour/create/events`, eventToSubmit);
-
-            alert("Event created");
+            // Reset
             setShowAddEventForm(false);
             setNewEvent({
                 event_title: "",
@@ -158,16 +168,53 @@ export default function CommunityTabs() {
             });
             setNewImage(null);
             setPreviewImage(null);
+            setEditingEvent(null);
 
-
+            // Refresh list
             const res = await axios.get(`${url}/neighbour/events/${communityName}`);
             setEvents(res.data.events || []);
         } catch (err) {
-            console.error("Error creating event:", err);
-            alert("Failed to create event");
+            console.error("Error saving event:", err);
+            alert("Failed to save event");
         }
     };
 
+    const handleEditEvent = (event) => {
+        setShowAddEventForm(true);
+        setNewEvent({
+            ...event,
+            event_image_url: event.event_image_url || "",
+            date: event.date ? event.date.slice(0, 10) : "",
+        });
+        setPreviewImage(event.event_image_url || null);
+        setEditingEvent(event.event_id); // used to determine if update or create
+    };
+
+    const handleDeleteEvent = (event_id) => {
+        setEventToDelete(event_id);
+        setShowConfirmModal(true);
+    };
+
+    const confirmDelete = async () => {
+        setShowConfirmModal(false);
+        try {
+            await axios.delete(`${url}/neighbour/events/delete`, {
+                data: {
+                    leader_name: username,
+                    community_name: communityName,
+                    event_id: eventToDelete,
+                },
+            });
+            setResponseMessage("✅ Event deleted successfully.");
+            const res = await axios.get(`${url}/neighbour/events/${communityName}`);
+            setEvents(res.data.events || []);
+        } catch (err) {
+            console.error("Failed to delete event:", err);
+            setResponseMessage("❌ Failed to delete event.");
+        } finally {
+            setShowResponseModal(true);
+        }
+    };
 
     const [shareList, setShareList] = useState([]);
     const [showShareForm, setShowShareForm] = useState(false);
@@ -248,139 +295,172 @@ export default function CommunityTabs() {
                     {activeTab === "event" && (
                         <>
 
-                            {isLeader && showAddEventForm && (
-                                <Form onSubmit={handleCreateEvent} className="mt-3">
-
-                                    <Form.Group controlId="formImage" className="mt-3">
-                                        <Form.Label>Event Image</Form.Label>
-                                        <Form.Control
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    setNewImage(file);
-
-                                                    const reader = new FileReader();
-                                                    reader.onloadend = () => {
-                                                        setPreviewImage(reader.result); // base64 preview
-                                                    };
-                                                    reader.readAsDataURL(file);
-                                                }
-                                            }}
-                                        />
-                                    </Form.Group>
-
-                                    {previewImage && (
-                                        <div className="mt-2">
-                                            <div
-                                                className="p-2 mt-2 bg-secondary text-white rounded"
-                                                role="alert"
-                                                style={{ fontSize: "0.9rem" }}
-                                            >
-                                                <div className="d-flex align-items-center mb-2">
-                                                    <i className="bi bi-check-circle-fill me-2"></i>
-                                                    <span>Image selected : </span>
-                                                </div>
-
-                                                <div className="text-muted" style={{ fontSize: "0.8rem" }}>
-                                                    <Image
-                                                        src={previewImage}
-                                                        fluid
-                                                        style={{ maxHeight: 100, borderRadius: 8, border: "3px solid white" }}
-                                                        className="mx-1"
-                                                    />
-                                                </div>
-                                            </div>
+                            {isLeader && (
+                                <Modal
+                                    show={showAddEventForm}
+                                    onHide={() => {
+                                        setShowAddEventForm(false);
+                                        setEditingEvent(null);
+                                        setNewEvent({
+                                            event_title: "",
+                                            event_description: "",
+                                            date: "",
+                                            start_time: "",
+                                            end_time: "",
+                                            event_image_url: "",
+                                        });
+                                        setPreviewImage(null);
+                                    }}
+                                    centered
+                                    size="lg"
+                                >
+                                    <Modal.Header>
+                                        <div className="w-100 text-center">
+                                            <Modal.Title>{editingEvent ? "Edit Event" : "Add Event"}</Modal.Title>
                                         </div>
-                                    )}
+                                    </Modal.Header>
 
-                                    <Form.Group>
-                                        <Form.Label>Event Title</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            required
-                                            value={newEvent.event_title}
-                                            onChange={(e) =>
-                                                setNewEvent((prev) => ({
-                                                    ...prev,
-                                                    event_title: e.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </Form.Group>
+                                    <Modal.Body>
+                                        <Form onSubmit={handleCreateEvent}>
+                                            <Form.Group controlId="formImage" className="mt-3">
+                                                <Form.Label>Event Image</Form.Label>
+                                                <Form.Control
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files[0];
+                                                        if (file) {
+                                                            setNewImage(file);
+                                                            const reader = new FileReader();
+                                                            reader.onloadend = () => {
+                                                                setPreviewImage(reader.result);
+                                                            };
+                                                            reader.readAsDataURL(file);
+                                                        }
+                                                    }}
+                                                />
+                                            </Form.Group>
 
-                                    <Form.Group className="mt-2">
-                                        <Form.Label>Description</Form.Label>
-                                        <Form.Control
-                                            as="textarea"
-                                            rows={3}
-                                            required
-                                            value={newEvent.event_description}
-                                            onChange={(e) =>
-                                                setNewEvent((prev) => ({
-                                                    ...prev,
-                                                    event_description: e.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </Form.Group>
+                                            {previewImage && (
+                                                <div className="mt-2">
+                                                    <div className="p-2 mt-2 bg-secondary text-white rounded" style={{ fontSize: "0.9rem" }}>
+                                                        <div className="d-flex align-items-center mb-2">
+                                                            <i className="bi bi-check-circle-fill me-2"></i>
+                                                            <span>Image selected:</span>
+                                                        </div>
+                                                        <div className="text-muted" style={{ fontSize: "0.8rem" }}>
+                                                            <Image
+                                                                src={previewImage}
+                                                                fluid
+                                                                style={{ maxHeight: 100, borderRadius: 8, border: "3px solid white" }}
+                                                                className="mx-1"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
 
-                                    <Form.Group className="mt-2">
-                                        <Form.Label>Date</Form.Label>
-                                        <Form.Control
-                                            type="date"
-                                            required
-                                            value={newEvent.date}
-                                            onChange={(e) =>
-                                                setNewEvent((prev) => ({
-                                                    ...prev,
-                                                    date: e.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </Form.Group>
+                                            <Form.Group>
+                                                <Form.Label>Event Title</Form.Label>
+                                                <Form.Control
+                                                    type="text"
+                                                    required
+                                                    value={newEvent.event_title}
+                                                    onChange={(e) =>
+                                                        setNewEvent((prev) => ({
+                                                            ...prev,
+                                                            event_title: e.target.value,
+                                                        }))
+                                                    }
+                                                />
+                                            </Form.Group>
 
-                                    <Form.Group className="mt-2">
-                                        <Form.Label>Start Time</Form.Label>
-                                        <Form.Control
-                                            type="time"
-                                            required
-                                            value={newEvent.start_time}
-                                            onChange={(e) =>
-                                                setNewEvent((prev) => ({
-                                                    ...prev,
-                                                    start_time: e.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </Form.Group>
+                                            <Form.Group className="mt-2">
+                                                <Form.Label>Description</Form.Label>
+                                                <Form.Control
+                                                    as="textarea"
+                                                    rows={3}
+                                                    required
+                                                    value={newEvent.event_description}
+                                                    onChange={(e) =>
+                                                        setNewEvent((prev) => ({
+                                                            ...prev,
+                                                            event_description: e.target.value,
+                                                        }))
+                                                    }
+                                                />
+                                            </Form.Group>
 
-                                    <Form.Group className="mt-2">
-                                        <Form.Label>End Time</Form.Label>
-                                        <Form.Control
-                                            type="time"
-                                            required
-                                            value={newEvent.end_time}
-                                            onChange={(e) =>
-                                                setNewEvent((prev) => ({
-                                                    ...prev,
-                                                    end_time: e.target.value,
-                                                }))
-                                            }
-                                        />
-                                    </Form.Group>
+                                            <Form.Group className="mt-2">
+                                                <Form.Label>Date</Form.Label>
+                                                <Form.Control
+                                                    type="date"
+                                                    required
+                                                    value={newEvent.date}
+                                                    onChange={(e) =>
+                                                        setNewEvent((prev) => ({
+                                                            ...prev,
+                                                            date: e.target.value,
+                                                        }))
+                                                    }
+                                                />
+                                            </Form.Group>
 
-                                    <div className="mt-3 d-flex gap-2">
-                                        <Button type="submit" variant="primary">
-                                            Submit
-                                        </Button>
-                                        <Button variant="secondary" onClick={() => setShowAddEventForm(false)}>
-                                            Cancel
-                                        </Button>
-                                    </div>
-                                </Form>
+                                            <Form.Group className="mt-2">
+                                                <Form.Label>Start Time</Form.Label>
+                                                <Form.Control
+                                                    type="time"
+                                                    required
+                                                    value={newEvent.start_time}
+                                                    onChange={(e) =>
+                                                        setNewEvent((prev) => ({
+                                                            ...prev,
+                                                            start_time: e.target.value,
+                                                        }))
+                                                    }
+                                                />
+                                            </Form.Group>
+
+                                            <Form.Group className="mt-2">
+                                                <Form.Label>End Time</Form.Label>
+                                                <Form.Control
+                                                    type="time"
+                                                    required
+                                                    value={newEvent.end_time}
+                                                    onChange={(e) =>
+                                                        setNewEvent((prev) => ({
+                                                            ...prev,
+                                                            end_time: e.target.value,
+                                                        }))
+                                                    }
+                                                />
+                                            </Form.Group>
+
+                                            <div className="mt-3 d-flex gap-2 justify-content-end">
+                                                <Button variant="secondary" onClick={() => {
+                                                    setShowAddEventForm(false);
+                                                    setEditingEvent(null);
+                                                    setNewEvent({
+                                                        event_title: "",
+                                                        event_description: "",
+                                                        date: "",
+                                                        start_time: "",
+                                                        end_time: "",
+                                                        event_image_url: "",
+                                                    });
+                                                    setPreviewImage(null);
+                                                }}>
+                                                    Cancel
+                                                </Button>
+                                                <Button type="submit" variant="primary">
+                                                    Submit
+                                                </Button>
+                                            </div>
+                                        </Form>
+                                    </Modal.Body>
+                                </Modal>
                             )}
+
                             <h3 className="text-center fw-bold">Upcoming Events</h3>
                             <hr />
                             {isLeader && !showAddEventForm && (
@@ -394,11 +474,37 @@ export default function CommunityTabs() {
                             ) : (
                                 events.map((event, idx) => (
 
-                                    <Card key={idx} className='mb-4 mt-4 border border-black border-1 shadow-sm' style={{ backgroundColor: "#fdfdfd" }}>
-                                        <span className="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-warning" style={{ zIndex: 2 }}>
+                                    <Card key={idx} className="card-group-hover position-relative mb-4 mt-4 border border-black border-1 shadow-sm" style={{ backgroundColor: "#fdfdfd" }}>
+
+                                        <span
+                                            className="position-absolute top-0 start-50 translate-middle-x  "
+                                            style={{ zIndex: 4, fontSize: "1rem", padding: "0.5rem 1rem" }}
+                                        >
                                             📌
                                         </span>
                                         {/* Image Header */}
+                                        {isLeader && (
+                                            <Button
+                                                variant="warning"
+                                                size="sm"
+                                                className="edit-btn position-absolute top-0 start-0 m-2"
+                                                onClick={() => handleEditEvent(event)}
+                                            >
+                                                ✏️ Edit
+                                            </Button>
+                                        )}
+
+                                        {isLeader && (
+                                            <Button
+                                                variant="danger"
+                                                size="sm"
+                                                className="delete-btn position-absolute top-0 end-0 m-2"
+                                                onClick={() => handleDeleteEvent(event.event_id)}
+                                            >
+                                                🗑️ Delete
+                                            </Button>
+                                        )}
+
                                         {event.event_image_url && (
                                             <div
                                                 style={{
@@ -407,6 +513,7 @@ export default function CommunityTabs() {
                                                     paddingTop: "56.25%", // 16:9 ratio
                                                     overflow: "hidden",
                                                     backgroundColor: "#f8f9fa",
+                                                    marginTop: "45px",
                                                 }}
                                             >
                                                 <Card.Img
@@ -428,7 +535,7 @@ export default function CommunityTabs() {
 
                                         {/* Content */}
                                         <Card.Body className="px-4 py-3">
-                                            <Card.Title className="fw-bold text-center fs-4 text-primary mb-3">
+                                            <Card.Title className="fw-bold text-center fs-4 text-primary mb-3 pt-4">
                                                 {event.event_title}
                                             </Card.Title>
 
@@ -447,6 +554,47 @@ export default function CommunityTabs() {
                             )}
                         </>
                     )}
+
+                    {/* Delete Confirmation Modal */}
+                    <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
+                        <Modal.Header >
+                            <div className="w-100 text-center">
+                                <Modal.Title>Confirm Deletion</Modal.Title>
+                            </div>
+                        </Modal.Header>
+                        <Modal.Body>
+                            <div className="w-100 text-center">
+                                <p>Are you sure you want to delete this event?</p>
+                                <p className="text-danger">This action cannot be undone.</p>
+                            </div>
+
+                        </Modal.Body>
+                        <Modal.Footer>
+                            <Button variant="secondary" onClick={() => setShowConfirmModal(false)}>
+                                Cancel
+                            </Button>
+                            <Button variant="danger" onClick={confirmDelete}>
+                                Delete
+                            </Button>
+                        </Modal.Footer>
+                    </Modal>
+
+                    {/* Response Modal */}
+                    <Modal show={showResponseModal} onHide={() => setShowResponseModal(false)} centered>
+                        <Modal.Header >
+                            <div className="w-100 text-center">
+                                <Modal.Title>Delete Status</Modal.Title>
+                            </div>
+                        </Modal.Header>
+                        <Modal.Body>{responseMessage}</Modal.Body>
+                        <Modal.Footer>
+                            <Button variant="primary" onClick={() => setShowResponseModal(false)}>
+                                Close
+                            </Button>
+                        </Modal.Footer>
+                    </Modal>
+
+
 
                     {activeTab === "help" && (
                         <>
