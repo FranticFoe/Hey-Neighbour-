@@ -66,16 +66,47 @@ export default function JoinCommunityMap({ show, onHide }) {
                                 },
                                 map: mapInstance,
                                 title: community.community_name,
+                                icon: {
+                                    url: `${window.location.origin}/house_Marker.png`,
+                                    scaledSize: new window.google.maps.Size(32, 32),
+                                },
                             });
 
                             const infoWindow = new window.google.maps.InfoWindow({
                                 content: `
-                                    <div>
-                                        <strong>${community.community_name}</strong><br />
-                                        <button id="join-${community.community_name}">Join</button>
-                                    </div>
-                                `,
+    <div style="
+      font-family: Arial, sans-serif;
+      padding: 8px;
+      border-radius: 8px;
+      background-color: #fefefe;
+      max-width: 200px;
+      
+      text-align: center;
+    ">
+      <strong style="
+        font-size: 16px;
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+      ">
+        ${community.community_name}
+      </strong>
+      <button id="join-${community.community_name}" style="
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      ">
+        Join
+      </button>
+    </div>
+  `,
                             });
+
+
 
                             marker.addListener("click", () => {
                                 infoWindow.open(mapInstance, marker);

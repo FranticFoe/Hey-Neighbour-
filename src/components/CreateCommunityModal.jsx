@@ -48,6 +48,10 @@ export default function CreateCommunityModal({ show, onHide, user }) {
                     position: latLng,
                     map: mapInstance.current,
                     draggable: true,
+                    icon: {
+                        url: `${window.location.origin}/house_Marker.png`,
+                        scaledSize: new window.google.maps.Size(32, 32),
+                    },
                 });
 
                 marker.addListener("dragend", () => {

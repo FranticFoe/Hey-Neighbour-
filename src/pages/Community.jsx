@@ -119,6 +119,16 @@ export default function Community() {
         loadGoogleMapsScript();
     }, []);
 
+    useEffect(() => {
+        if (createModalShow && mapRef.current && !mapInstance.current && window.google?.maps) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                setLatitude(pos.coords.latitude);
+                setLongitude(pos.coords.longitude);
+                initializeMap(pos.coords.latitude, pos.coords.longitude);
+            });
+        }
+    }, [createModalShow]);
+
     if (!hasCommunity) {
         return (
             <div className="p-4">

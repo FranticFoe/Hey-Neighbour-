@@ -17,6 +17,8 @@ import { AuthContext } from "./AuthProvider";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase";
 import "../App.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
+
 
 
 export default function CommunityTabs() {
@@ -288,7 +290,9 @@ export default function CommunityTabs() {
         }
     };
 
-
+    useEffect(() => {
+        fetchShares();
+    }, [communityName]);
 
     useEffect(() => {
         console.log("Updated shareList:", shareList);
@@ -466,27 +470,51 @@ export default function CommunityTabs() {
 
     return (
         <Container className="mt-4">
+
             <ToggleButtonGroup
                 type="radio"
                 name="tabOptions"
                 defaultValue={"event"}
                 onChange={(val) => setActiveTab(val)}
+                className="w-100 mb-4 d-flex flex-wrap justify-content-center"
             >
-                <ToggleButton id="tab-event" value={"event"} variant="outline-primary">
-                    Event
-                </ToggleButton>
-                <ToggleButton id="tab-help" value={"help"} variant="outline-secondary">
-                    Help Required
-                </ToggleButton>
-
-                <ToggleButton id="tab-borrow" value={"borrow"} variant="outline-success">
-                    Borrow & Share
-                </ToggleButton>
-                <ToggleButton id="tab-community" value={"community"} variant="outline-success">
-                    Community Members
+                <ToggleButton
+                    id="tab-event"
+                    value={"event"}
+                    variant={activeTab === "event" ? "primary" : "outline-primary"}
+                    className="mx-2 mb-2 px-4 py-2 rounded-pill fw-semibold"
+                >
+                    🎉 Events
                 </ToggleButton>
 
+                <ToggleButton
+                    id="tab-help"
+                    value={"help"}
+                    variant={activeTab === "help" ? "secondary" : "outline-secondary"}
+                    className="mx-2 mb-2 px-4 py-2 rounded-pill fw-semibold"
+                >
+                    🤝 Help Needed
+                </ToggleButton>
+
+                <ToggleButton
+                    id="tab-borrow"
+                    value={"borrow"}
+                    variant={activeTab === "borrow" ? "success" : "outline-success"}
+                    className="mx-2 mb-2 px-4 py-2 rounded-pill fw-semibold"
+                >
+                    🔄 Borrow & Share
+                </ToggleButton>
+
+                <ToggleButton
+                    id="tab-community"
+                    value={"community"}
+                    variant={activeTab === "community" ? "info" : "outline-info"}
+                    className="mx-2 mb-2 px-4 py-2 rounded-pill fw-semibold"
+                >
+                    👨‍👩‍👧‍👦  Members
+                </ToggleButton>
             </ToggleButtonGroup>
+
 
             <Card className="mt-3">
                 <Card.Body>
@@ -1400,82 +1428,80 @@ export default function CommunityTabs() {
                         </>
                     )}
 
-                    <Row className="mt-4">
-                        {/* LEFT COLUMN – MEMBER LIST */}
-                        <Col md={4}>
-                            <Card className="h-100">
-                                <Card.Header className="bg-dark text-white text-center position-relative">
-                                    👥 Member Names
-                                </Card.Header>
-                                <ListGroup variant="flush">
-                                    {members.filter((m) => m.username !== currentUser.username).map((member) => (
-                                        <ListGroup.Item
-                                            key={member.username}
-                                            action
-                                            onClick={() => setSelectedMember(member)}
-                                            active={selectedMember?.username === member.username}
-                                            className="d-flex align-items-center justify-content-between task-item"
-                                        >
-                                            {/* Reputation Badge */}
-                                            <span className="badge bg-primary me-2">{member.reputation}</span>
-
-                                            {/* Profile Pic and Name */}
-                                            <div className="d-flex align-items-center w-100">
-                                                <Image
-                                                    src={member.profile_image_url || defaultPic}
-                                                    roundedCircle
-                                                    style={{ width: 40, height: 40, objectFit: "cover", marginRight: 10 }}
-                                                />
-                                                <div className="text-start flex-grow-1" style={{ pointerEvents: "none" }}>
-                                                    <strong>{member.profile_name || member.username}</strong>
-                                                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>@{member.username}</div>
+                    {activeTab === "community" && (
+                        <Row className="mt-4">
+                            {/* LEFT COLUMN – MEMBER LIST */}
+                            <Col md={4}>
+                                <Card className="h-100">
+                                    <Card.Header className="bg-dark text-white text-center position-relative">
+                                        👥 Member Names
+                                    </Card.Header>
+                                    <ListGroup variant="flush">
+                                        {members.filter((m) => m.username !== currentUser.username).map((member) => (
+                                            <ListGroup.Item
+                                                key={member.username}
+                                                action
+                                                onClick={() => setSelectedMember(member)}
+                                                active={selectedMember?.username === member.username}
+                                                className="d-flex align-items-center justify-content-between task-item"
+                                            >
+                                                <span className="badge bg-primary me-2">{member.reputation}</span>
+                                                <div className="d-flex align-items-center w-100">
+                                                    <Image
+                                                        src={member.profile_image_url || defaultPic}
+                                                        roundedCircle
+                                                        style={{ width: 40, height: 40, objectFit: "cover", marginRight: 10 }}
+                                                    />
+                                                    <div className="text-start flex-grow-1" style={{ pointerEvents: "none" }}>
+                                                        <strong>{member.profile_name || member.username}</strong>
+                                                        <div className="text-muted" style={{ fontSize: "0.85rem" }}>@{member.username}</div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </ListGroup.Item>
-                                    ))}
-                                </ListGroup>
-                            </Card>
-                        </Col>
+                                            </ListGroup.Item>
+                                        ))}
+                                    </ListGroup>
+                                </Card>
+                            </Col>
 
-                        {/* RIGHT COLUMN – MEMBER DETAILS */}
-                        <Col md={8}>
-                            <Card className="h-100">
-                                <Card.Header className="bg-primary text-white text-center">
-                                    {selectedMember ? `${selectedMember.profile_name || selectedMember.username}'s Info` : "ℹ️ About Member"}
-                                </Card.Header>
-                                <Card.Body>
-                                    {selectedMember ? (
-                                        <>
-                                            <div className="text-center mb-3">
-                                                <Image
-                                                    src={selectedMember.profile_image_url || defaultPic}
-                                                    roundedCircle
-                                                    style={{
-                                                        width: 100,
-                                                        height: 100,
-                                                        objectFit: "cover",
-                                                        border: "2px solid #ddd",
-                                                    }}
-                                                />
-                                                <h5 className="mt-2">{selectedMember.profile_name || selectedMember.username}</h5>
-                                                <div className="text-muted">@{selectedMember.username}</div>
-                                            </div>
+                            {/* RIGHT COLUMN – MEMBER DETAILS */}
+                            <Col md={8}>
+                                <Card className="h-100">
+                                    <Card.Header className="bg-primary text-white text-center">
+                                        {selectedMember ? `${selectedMember.profile_name || selectedMember.username}'s Info` : "ℹ️ About Member"}
+                                    </Card.Header>
+                                    <Card.Body>
+                                        {selectedMember ? (
+                                            <>
+                                                <div className="text-center mb-3">
+                                                    <Image
+                                                        src={selectedMember.profile_image_url || defaultPic}
+                                                        roundedCircle
+                                                        style={{
+                                                            width: 100,
+                                                            height: 100,
+                                                            objectFit: "cover",
+                                                            border: "2px solid #ddd",
+                                                        }}
+                                                    />
+                                                    <h5 className="mt-2">{selectedMember.profile_name || selectedMember.username}</h5>
+                                                    <div className="text-muted">@{selectedMember.username}</div>
+                                                </div>
 
-                                            <p><strong>Description:</strong> {selectedMember.profile_description || "No description provided."}</p>
-                                            <p><strong>Reputation:</strong> {selectedMember.reputation}</p>
-                                            <p><strong>Joined:</strong> {formatDate(selectedMember.joined_date)}</p>
-                                            <p><strong>Community:</strong> {selectedMember.community_name}</p>
-                                        </>
-                                    ) : (
-                                        <p className="text-center text-muted">
-                                            Select a member from the list to view details.
-                                        </p>
-                                    )}
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    </Row>
-
+                                                <p><strong>Description:</strong> {selectedMember.profile_description || "No description provided."}</p>
+                                                <p><strong>Reputation:</strong> {selectedMember.reputation}</p>
+                                                <p><strong>Joined:</strong> {formatDate(selectedMember.joined_date)}</p>
+                                                <p><strong>Community:</strong> {selectedMember.community_name}</p>
+                                            </>
+                                        ) : (
+                                            <p className="text-center text-muted">
+                                                Select a member from the list to view details.
+                                            </p>
+                                        )}
+                                    </Card.Body>
+                                </Card>
+                            </Col>
+                        </Row>
+                    )}
 
 
                 </Card.Body>
