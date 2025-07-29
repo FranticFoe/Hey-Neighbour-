@@ -291,3 +291,12 @@
 .carousel-caption {
     z-index: 2;
 }
+
+/* ToggleGroup Button */
+.toggle-button:hover {
+    transform: translateY(-1px);
+}
+
+.toggle-button:active {
+    transform: translateY(0);
+}

@@ -474,42 +474,78 @@ export default function CommunityTabs() {
                 name="tabOptions"
                 defaultValue={"event"}
                 onChange={(val) => setActiveTab(val)}
-                className="w-100 mb-4 d-flex flex-wrap justify-content-center"
+                className="w-100 mb-4 d-flex flex-wrap justify-content-center gap-2"
             >
                 <ToggleButton
                     id="tab-event"
                     value={"event"}
                     variant={activeTab === "event" ? "primary" : "outline-primary"}
-                    className="mx-2 mb-2 px-4 py-2 rounded-pill fw-semibold"
+                    className="flex-fill flex-sm-fill-0 px-4 py-3 rounded-pill fw-semibold border-2 transition-all shadow-sm hover-shadow"
+                    style={{
+                        minWidth: '140px',
+                        transition: 'all 0.2s ease-in-out',
+                        border: activeTab === "event" ? '2px solid var(--bs-primary)' : '2px solid var(--bs-primary)',
+                        boxShadow: activeTab === "event" ? '0 4px 12px rgba(13, 110, 253, 0.25)' : '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
                 >
-                    🎉 Events
+                    <span className="d-flex align-items-center justify-content-center gap-2">
+                        <span style={{ fontSize: '1.1em' }}>🎉</span>
+                        <span>Events</span>
+                    </span>
                 </ToggleButton>
 
                 <ToggleButton
                     id="tab-help"
                     value={"help"}
-                    variant={activeTab === "help" ? "secondary" : "outline-secondary"}
-                    className="mx-2 mb-2 px-4 py-2 rounded-pill fw-semibold"
+                    variant={activeTab === "help" ? "warning" : "outline-warning"}
+                    className="flex-fill flex-sm-fill-0 px-4 py-3 rounded-pill fw-semibold border-2"
+                    style={{
+                        minWidth: '140px',
+                        transition: 'all 0.2s ease-in-out',
+                        border: activeTab === "help" ? '2px solid var(--bs-warning)' : '2px solid var(--bs-warning)',
+                        boxShadow: activeTab === "help" ? '0 4px 12px rgba(255, 193, 7, 0.25)' : '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
                 >
-                    🤝 Help Needed
+                    <span className="d-flex align-items-center justify-content-center gap-2">
+                        <span style={{ fontSize: '1.1em' }}>🤝</span>
+                        <span>Help Needed</span>
+                    </span>
                 </ToggleButton>
 
                 <ToggleButton
                     id="tab-borrow"
                     value={"borrow"}
                     variant={activeTab === "borrow" ? "success" : "outline-success"}
-                    className="mx-2 mb-2 px-4 py-2 rounded-pill fw-semibold"
+                    className="flex-fill flex-sm-fill-0 px-4 py-3 rounded-pill fw-semibold border-2"
+                    style={{
+                        minWidth: '140px',
+                        transition: 'all 0.2s ease-in-out',
+                        border: activeTab === "borrow" ? '2px solid var(--bs-success)' : '2px solid var(--bs-success)',
+                        boxShadow: activeTab === "borrow" ? '0 4px 12px rgba(25, 135, 84, 0.25)' : '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
                 >
-                    🔄 Borrow & Share
+                    <span className="d-flex align-items-center justify-content-center gap-2">
+                        <span style={{ fontSize: '1.1em' }}>🔄</span>
+                        <span>Borrow & Share</span>
+                    </span>
                 </ToggleButton>
 
                 <ToggleButton
                     id="tab-community"
                     value={"community"}
                     variant={activeTab === "community" ? "info" : "outline-info"}
-                    className="mx-2 mb-2 px-4 py-2 rounded-pill fw-semibold"
+                    className="flex-fill flex-sm-fill-0 px-4 py-3 rounded-pill fw-semibold border-2"
+                    style={{
+                        minWidth: '140px',
+                        transition: 'all 0.2s ease-in-out',
+                        border: activeTab === "community" ? '2px solid var(--bs-info)' : '2px solid var(--bs-info)',
+                        boxShadow: activeTab === "community" ? '0 4px 12px rgba(13, 202, 240, 0.25)' : '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
                 >
-                    👨‍👩‍👧‍👦  Members
+                    <span className="d-flex align-items-center justify-content-center gap-2">
+                        <span style={{ fontSize: '1.1em' }}>👨‍👩‍👧‍👦</span>
+                        <span>Members</span>
+                    </span>
                 </ToggleButton>
             </ToggleButtonGroup>
 
