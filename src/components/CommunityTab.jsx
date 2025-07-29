@@ -87,6 +87,20 @@ export default function CommunityTabs() {
     const { currentUser } = useContext(AuthContext);
     const username = currentUser?.displayName;
     const [selectedMember, setSelectedMember] = useState(null);
+    const handleEditHelp = (task) => {
+        setTaskBeingEdited(task.id);
+        setHelpForm({
+            task_title: task.task_title ?? null,
+            task_description: task.description ?? null,
+            capacity: task.capacity ?? null,
+            date: task.date ? task.date.slice(0, 10) : null,
+            start_time: task.start_time ?? null,
+            duration: task.duration ?? null,
+        });
+        setPreviewTaskImage(task.task_image_url || null);
+        setShowHelpForm(true);
+    };
+
 
     const fetchHelpRequests = async () => {
         try {
@@ -136,12 +150,13 @@ export default function CommunityTabs() {
             }
 
             if (isEditMode && taskBeingEdited !== null) {
+
                 const payload = {
-                    task_id: taskBeingEdited,
-                    ...helpForm,
                     username: username,
+                    task_id: taskBeingEdited,
                     community_name: communityName,
                     task_image_url: imageUrl,
+                    ...helpForm,
                 };
 
                 await axios.put(`${url}/neighbour/help/update`, payload);
@@ -178,23 +193,6 @@ export default function CommunityTabs() {
             console.error("Error submitting help request", err);
             alert("Failed to submit task");
         }
-    };
-
-
-    const handleEditHelp = (task) => {
-        setTaskBeingEdited(task.id);
-        setHelpForm({
-            task_title: task.task_title,
-            task_description: task.description,
-            capacity: task.capacity,
-            date: task.date?.slice(0, 10) || "",
-            start_time: task.start_time || "",
-            duration: task.duration,
-            task_rewards: task.task_rewards,
-            task_image_url: task.task_image_url || "",
-        });
-        setPreviewTaskImage(task.task_image_url || null);
-        setShowHelpForm(true);
     };
 
 
@@ -1241,7 +1239,7 @@ export default function CommunityTabs() {
                                             Cancel
                                         </Button>
                                         <Button type="submit" variant="primary">
-                                            Share Item
+                                            {isEditingShare ? "Confirm Edit" : "Share Item"}
                                         </Button>
                                     </Modal.Footer>
                                 </Form>

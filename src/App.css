@@ -49,3 +49,245 @@
     color: white;
     text-shadow: 0 0 8px white;
 }
+
+.brand-logo-container {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 2px;
+}
+
+.brand-logo {
+    width: 50px;
+    /* Adjust size as needed */
+    height: 70px;
+    /* Keep it square */
+    object-fit: cover;
+    /* Ensures proper scaling */
+    border-radius: 4px;
+    /* Optional: rounded corners */
+    margin-right: 6px;
+    /* Small gap between logo and text */
+    flex-shrink: 0;
+    /* Prevents the image from shrinking */
+}
+
+
+/* This is the CSS for the carousel component */
+.carousel-wrapper {
+    max-width: 800px;
+    width: 100%;
+    position: relative;
+    margin: 0 auto;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    background: white;
+}
+
+.carousel-image {
+    width: 100% !important;
+    height: 400px !important;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 0;
+    display: block;
+}
+
+/* Fix for Bootstrap Carousel specific issues */
+.carousel-item {
+    height: 400px;
+}
+
+.carousel-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.carousel-caption {
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    padding: 2rem;
+    border-radius: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+
+.carousel-caption h5 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.carousel-caption p {
+    font-size: 1.1rem;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive adjustments */
+.carousel-wrapper {
+    max-width: 800px;
+    width: 100%;
+    position: relative;
+    margin: 0 auto;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+/* Force consistent carousel item height */
+.carousel-item {
+    height: 500px;
+    /* Fixed height for all slides */
+    position: relative;
+}
+
+/* Properly fit images within the container */
+.carousel-image {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 0 !important;
+}
+
+/* Ensure Bootstrap's fluid class doesn't interfere */
+.carousel-image.img-fluid {
+    max-width: none !important;
+    height: 100% !important;
+}
+
+/* Improve caption visibility and positioning */
+.carousel-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+    padding: 2rem;
+    text-align: center;
+    border-radius: 0;
+    /* Ensure caption is always visible */
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+/* Style the caption text for better readability */
+.carousel-caption h5 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    line-height: 1.2;
+}
+
+.carousel-caption p {
+    font-size: 1.1rem;
+    margin: 0;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    line-height: 1.4;
+}
+
+/* Carousel controls styling */
+.carousel-control-prev,
+.carousel-control-next {
+    width: 5%;
+    opacity: 0.8;
+}
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+    opacity: 1;
+}
+
+/* Carousel indicators */
+.carousel-indicators {
+    bottom: 15px;
+}
+
+.carousel-indicators [data-bs-target] {
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+.carousel-indicators .active {
+    background-color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .carousel-wrapper {
+        max-width: 95%;
+        margin: 0 auto;
+    }
+
+    .carousel-item {
+        height: 400px;
+    }
+
+    .carousel-caption {
+        padding: 1.5rem;
+        min-height: 100px;
+    }
+
+    .carousel-caption h5 {
+        font-size: 1.5rem;
+    }
+
+    .carousel-caption p {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .carousel-item {
+        height: 350px;
+    }
+
+    .carousel-caption {
+        padding: 1rem;
+        min-height: 90px;
+    }
+
+    .carousel-caption h5 {
+        font-size: 1.3rem;
+        margin-bottom: 0.3rem;
+    }
+
+    .carousel-caption p {
+        font-size: 0.9rem;
+    }
+}
+
+/* Additional fix for Bootstrap 5 if you're using it */
+.carousel-item>.carousel-image {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Optional: Add a subtle overlay to improve text readability */
+.carousel-item::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.carousel-caption {
+    z-index: 2;
+}
