@@ -8,6 +8,9 @@ import {
     Form,
     Image,
     Modal,
+    Row,
+    Col,
+    ListGroup
 } from "react-bootstrap";
 import axios from "axios";
 import { AuthContext } from "./AuthProvider";
@@ -27,6 +30,13 @@ export default function CommunityTabs() {
     const [communityName, setCommunityName] = useState("");
     const [newImage, setNewImage] = useState(null);
     const [previewImage, setPreviewImage] = useState(null);
+    const [newTaskImage, setNewTaskImage] = useState(null);
+    const [previewTaskImage, setPreviewTaskImage] = useState(null);
+    const [selectedTask, setSelectedTask] = useState(null);
+    const [showUserRequests, setShowUserRequests] = useState(false);
+    const [headerTitle, setHeaderTitle] = useState("Available Tasks");
+
+
     const [newEvent, setNewEvent] = useState({
         event_title: "",
         event_description: "",
@@ -40,8 +50,13 @@ export default function CommunityTabs() {
     const [showResponseModal, setShowResponseModal] = useState(false);
     const [responseMessage, setResponseMessage] = useState("");
 
+
+    const [deleteType, setDeleteType] = useState("");
+    const [itemToDelete, setItemToDelete] = useState(null);
     const [showHelpForm, setShowHelpForm] = useState(false);
     const [helpList, setHelpList] = useState([]);
+    const [taskBeingEdited, setTaskBeingEdited] = useState(null);
+    const isEditMode = taskBeingEdited !== null;
     const [helpForm, setHelpForm] = useState({
         task_title: "",
         task_description: "",
@@ -50,6 +65,7 @@ export default function CommunityTabs() {
         start_time: "",
         duration: "",
         task_rewards: "",
+        task_image_url: "",
     });
 
     const { currentUser } = useContext(AuthContext);
@@ -70,6 +86,7 @@ export default function CommunityTabs() {
     }, [communityName]);
 
     function formatTime(time24) {
+        if (!time24) return "any";
         const [hour, minute] = time24.split(":");
         const h = parseInt(hour);
         const suffix = h >= 12 ? "PM" : "AM";
@@ -77,9 +94,10 @@ export default function CommunityTabs() {
         return `${hour12}:${minute} ${suffix}`;
     }
 
-
     function formatDate(isoDate) {
+        if (!isoDate) return "any";
         const d = new Date(isoDate);
+        if (isNaN(d)) return "any";
         return d.toLocaleDateString("en-GB", {
             day: "numeric",
             month: "long",
@@ -87,15 +105,44 @@ export default function CommunityTabs() {
         });
     }
 
+
     const handleSubmitHelp = async (e) => {
         e.preventDefault();
+
         try {
-            await axios.post(`${url}/neighbour/help`, {
-                neighbour_username: username,
-                community_name: communityName,
-                ...helpForm,
-            });
-            alert("Help request submitted");
+            let imageUrl = helpForm.task_image_url || "";
+
+            if (newTaskImage) {
+                const imageRef = ref(storage, `help/${newTaskImage.name}`);
+                await uploadBytes(imageRef, newTaskImage);
+                imageUrl = await getDownloadURL(imageRef);
+            }
+
+            if (isEditMode && taskBeingEdited !== null) {
+                const payload = {
+                    task_id: taskBeingEdited,
+                    ...helpForm,
+                    username: username,
+                    community_name: communityName,
+                    task_image_url: imageUrl,
+                };
+
+                await axios.put(`${url}/neighbour/help/update`, payload);
+
+                alert("Task updated");
+
+            } else {
+                await axios.post(`${url}/neighbour/help`, {
+                    ...helpForm,
+                    neighbour_username: username,
+                    community_name: communityName,
+                    task_image_url: imageUrl,
+                });
+                alert("Task created");
+            }
+
+            // Reset form
+
             setShowHelpForm(false);
             setHelpForm({
                 task_title: "",
@@ -105,11 +152,57 @@ export default function CommunityTabs() {
                 start_time: "",
                 duration: "",
                 task_rewards: "",
+                task_image_url: "",
             });
-            fetchHelpRequests(); // Refresh list
+            setNewTaskImage(null);
+            setPreviewTaskImage(null);
+            fetchHelpRequests();
         } catch (err) {
             console.error("Error submitting help request", err);
-            alert("Failed to submit help request");
+            alert("Failed to submit task");
+        }
+    };
+
+
+    const handleEditHelp = (task) => {
+        setTaskBeingEdited(task.id);
+        setHelpForm({
+            task_title: task.task_title,
+            task_description: task.description,
+            capacity: task.capacity,
+            date: task.date?.slice(0, 10) || "",
+            start_time: task.start_time || "",
+            duration: task.duration,
+            task_rewards: task.task_rewards,
+            task_image_url: task.task_image_url || "",
+        });
+        setPreviewTaskImage(task.task_image_url || null);
+        setShowHelpForm(true);
+    };
+
+
+
+    const handleDeleteHelp = (taskId) => {
+        setItemToDelete(taskId);          // shared state for confirm
+        setDeleteType("task");            // distinguish between task/event
+        setShowConfirmModal(true);        // triggers the modal
+    };
+
+    const confirmDeleteTask = async () => {
+        setShowConfirmModal(false);
+        try {
+            await axios.delete(`${url}/neighbour/help/delete`, {
+                data: {
+                    username,
+                    community_name: communityName,
+                    task_id: itemToDelete,
+                },
+            });
+            alert("Task deleted");
+            fetchHelpRequests(); // Refresh the list
+        } catch (err) {
+            console.error("Failed to delete task:", err);
+            alert("Failed to delete task");
         }
     };
 
@@ -127,6 +220,30 @@ export default function CommunityTabs() {
         }
     };
 
+    const fetchUserHelpTasks = async () => {
+        try {
+            const res = await axios.get(`${url}/neighbour/help/needed/${username}`);
+            setHelpList(res.data.helpNeeded);
+            setSelectedTask(null); // Optional: clear selection on shuffle
+        } catch (error) {
+            console.error("Failed to fetch shuffled tasks:", error);
+        }
+    };
+
+    const handleShuffleClick = async () => {
+        try {
+            if (showUserRequests) {
+                await fetchHelpRequests(); // Show all community tasks
+                setHeaderTitle("Available Tasks");
+            } else {
+                await fetchUserHelpTasks(); // Show user's own requests
+                setHeaderTitle("Your Request");
+            }
+            setShowUserRequests(!showUserRequests); // Toggle the view
+        } catch (err) {
+            console.error("Toggle failed", err);
+        }
+    };
 
 
     const handleCreateEvent = async (e) => {
@@ -192,10 +309,11 @@ export default function CommunityTabs() {
 
     const handleDeleteEvent = (event_id) => {
         setEventToDelete(event_id);
+        setDeleteType("event");
         setShowConfirmModal(true);
     };
 
-    const confirmDelete = async () => {
+    const confirmDeleteEvent = async () => {
         setShowConfirmModal(false);
         try {
             await axios.delete(`${url}/neighbour/events/delete`, {
@@ -405,6 +523,8 @@ export default function CommunityTabs() {
                                                     }
                                                 />
                                             </Form.Group>
+                                            {/* useSelect for cuztomized start/end time with own built in function  where it uses moment.js or date-fns*/}
+
 
                                             <Form.Group className="mt-2">
                                                 <Form.Label>Start Time</Form.Label>
@@ -559,12 +679,12 @@ export default function CommunityTabs() {
                     <Modal show={showConfirmModal} onHide={() => setShowConfirmModal(false)} centered>
                         <Modal.Header >
                             <div className="w-100 text-center">
-                                <Modal.Title>Confirm Deletion</Modal.Title>
+                                <Modal.Title>Confirm {deleteType === "event" ? "Event" : "Task"} Deletion</Modal.Title>
                             </div>
                         </Modal.Header>
                         <Modal.Body>
                             <div className="w-100 text-center">
-                                <p>Are you sure you want to delete this event?</p>
+                                <p>Are you sure you want to delete this {deleteType}?</p>
                                 <p className="text-danger">This action cannot be undone.</p>
                             </div>
 
@@ -573,7 +693,16 @@ export default function CommunityTabs() {
                             <Button variant="secondary" onClick={() => setShowConfirmModal(false)}>
                                 Cancel
                             </Button>
-                            <Button variant="danger" onClick={confirmDelete}>
+                            <Button
+                                variant="danger"
+                                onClick={() => {
+                                    if (deleteType === "event") {
+                                        confirmDeleteEvent();
+                                    } else if (deleteType === "task") {
+                                        confirmDeleteTask();
+                                    }
+                                }}
+                            >
                                 Delete
                             </Button>
                         </Modal.Footer>
@@ -598,121 +727,247 @@ export default function CommunityTabs() {
 
                     {activeTab === "help" && (
                         <>
-                            <Button className="mb-3" onClick={() => setShowHelpForm(!showHelpForm)}>
+
+                            <Modal show={showHelpForm} onHide={() => setShowHelpForm(false)} centered size="lg">
+                                <Modal.Header closeButton>
+                                    <Modal.Title>
+                                        {isEditMode ? "Edit Help Request" : "Create Help Request"}
+                                    </Modal.Title>
+                                </Modal.Header>
+                                <Modal.Body>
+                                    <Form onSubmit={handleSubmitHelp}>
+                                        <Form.Group controlId="formImage" className="mt-2">
+                                            <Form.Label>Task Image</Form.Label>
+                                            <Form.Control
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        setNewTaskImage(file);
+                                                        const reader = new FileReader();
+                                                        reader.onloadend = () => {
+                                                            setPreviewTaskImage(reader.result);
+                                                        };
+                                                        reader.readAsDataURL(file);
+                                                    }
+                                                }}
+                                            />
+                                        </Form.Group>
+
+                                        {previewTaskImage && (
+                                            <div className="mt-3">
+                                                <div className="p-2 bg-secondary text-white rounded" style={{ fontSize: "0.9rem" }}>
+                                                    <div className="d-flex align-items-center mb-2">
+                                                        <i className="bi bi-check-circle-fill me-2"></i>
+                                                        <span>Image selected:</span>
+                                                    </div>
+                                                    <div className="text-muted" style={{ fontSize: "0.8rem" }}>
+                                                        <Image
+                                                            src={previewTaskImage}
+                                                            fluid
+                                                            style={{ maxHeight: 100, borderRadius: 8, border: "3px solid white" }}
+                                                            className="mx-1"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <Form.Group>
+                                            <Form.Label>Task Title</Form.Label>
+                                            <Form.Control
+                                                required
+                                                type="text"
+                                                value={helpForm.task_title}
+                                                onChange={(e) => setHelpForm({ ...helpForm, task_title: e.target.value })}
+                                            />
+                                        </Form.Group>
+
+                                        <Form.Group>
+                                            <Form.Label>Description</Form.Label>
+                                            <Form.Control
+                                                as="textarea"
+                                                rows={3}
+                                                required
+                                                value={helpForm.task_description}
+                                                onChange={(e) => setHelpForm({ ...helpForm, task_description: e.target.value })}
+                                            />
+                                        </Form.Group>
+
+                                        <Form.Group>
+                                            <Form.Label>Capacity</Form.Label>
+                                            <Form.Control
+                                                type="number"
+                                                value={helpForm.capacity}
+                                                onChange={(e) => setHelpForm({ ...helpForm, capacity: e.target.value })}
+                                            />
+                                        </Form.Group>
+
+                                        <Form.Group>
+                                            <Form.Label>Date</Form.Label>
+                                            <Form.Control
+                                                type="date"
+                                                value={helpForm.date}
+                                                onChange={(e) => setHelpForm({ ...helpForm, date: e.target.value })}
+                                            />
+                                        </Form.Group>
+
+                                        <Form.Group>
+                                            <Form.Label>Start Time</Form.Label>
+                                            <Form.Control
+                                                type="time"
+                                                value={helpForm.start_time}
+                                                onChange={(e) => setHelpForm({ ...helpForm, start_time: e.target.value })}
+                                            />
+                                        </Form.Group>
+
+                                        <Form.Group>
+                                            <Form.Label>Duration (minutes)</Form.Label>
+                                            <Form.Control
+                                                type="number"
+                                                value={helpForm.duration}
+                                                onChange={(e) => setHelpForm({ ...helpForm, duration: e.target.value })}
+                                            />
+                                        </Form.Group>
+
+                                        <Form.Group>
+                                            <Form.Label>Rewards</Form.Label>
+                                            <Form.Control
+                                                type="text"
+                                                value={helpForm.task_rewards}
+                                                onChange={(e) => setHelpForm({ ...helpForm, task_rewards: e.target.value })}
+                                            />
+                                        </Form.Group>
+
+                                        <div className="d-flex justify-content-end mt-3">
+                                            <Button variant="secondary" className="me-2" onClick={() => setShowHelpForm(false)}>
+                                                Cancel
+                                            </Button>
+                                            <Button type="submit" variant="primary">
+                                                {isEditMode ? "Update Help Request" : "Submit Help Request"}
+                                            </Button>
+                                        </div>
+                                    </Form>
+                                </Modal.Body>
+                            </Modal>
+
+                            <h3 className="text-center fw-bold">Help Requests</h3>
+                            <hr />
+                            <Button
+                                className="mb-3"
+                                onClick={() => {
+                                    setShowHelpForm(!showHelpForm);
+                                    setTaskBeingEdited(null);
+                                }}
+                            >
                                 {showHelpForm ? "Close Help Request Form" : "Request Help"}
                             </Button>
 
-                            {showHelpForm && (
-                                <Form onSubmit={handleSubmitHelp}>
-                                    <Form.Group>
-                                        <Form.Label>Task Title</Form.Label>
-                                        <Form.Control
-                                            required
-                                            type="text"
-                                            value={helpForm.task_title}
-                                            onChange={(e) => setHelpForm({ ...helpForm, task_title: e.target.value })}
-                                        />
-                                    </Form.Group>
-                                    <Form.Group>
-                                        <Form.Label>Description</Form.Label>
-                                        <Form.Control
-                                            as="textarea"
-                                            rows={3}
-                                            required
-                                            value={helpForm.task_description}
-                                            onChange={(e) => setHelpForm({ ...helpForm, task_description: e.target.value })}
-                                        />
-                                    </Form.Group>
-                                    <Form.Group>
-                                        <Form.Label>Capacity</Form.Label>
-                                        <Form.Control
-                                            type="number"
-                                            value={helpForm.capacity}
-                                            onChange={(e) => setHelpForm({ ...helpForm, capacity: e.target.value })}
-                                        />
-                                    </Form.Group>
-                                    <Form.Group>
-                                        <Form.Label>Date</Form.Label>
-                                        <Form.Control
-                                            type="date"
-                                            value={helpForm.date}
-                                            onChange={(e) => setHelpForm({ ...helpForm, date: e.target.value })}
-                                        />
-                                    </Form.Group>
-                                    <Form.Group>
-                                        <Form.Label>Start Time</Form.Label>
-                                        <Form.Control
-                                            type="time"
+                            <Row className="mt-4">
+                                {/* LEFT: Task Title List */}
+                                <Col md={4}>
+                                    <Card className="h-100">
+                                        <Card.Header className="bg-dark text-white text-center position-relative">
+                                            <i
+                                                className="bi bi-shuffle position-absolute start-0 ms-3 shuffle-icon"
+                                                onClick={handleShuffleClick}
+                                                title="Toggle Your Requests"
+                                                style={{ cursor: 'pointer' }}
+                                            />
+                                            📜 {headerTitle}
+                                        </Card.Header>
+                                        <ListGroup variant="flush">
+                                            {helpList.length === 0 && (
+                                                <ListGroup.Item>No help requests yet.</ListGroup.Item>
+                                            )}
 
-                                            value={helpForm.start_time}
-                                            onChange={(e) => setHelpForm({ ...helpForm, start_time: e.target.value })}
-                                        />
-                                    </Form.Group>
-                                    <Form.Group>
-                                        <Form.Label>Duration (minutes)</Form.Label>
-                                        <Form.Control
-                                            type="number"
-                                            value={helpForm.duration}
-                                            onChange={(e) => setHelpForm({ ...helpForm, duration: e.target.value })}
-                                        />
-                                    </Form.Group>
-                                    <Form.Group>
-                                        <Form.Label>Rewards</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            value={helpForm.task_rewards}
-                                            onChange={(e) => setHelpForm({ ...helpForm, task_rewards: e.target.value })}
-                                        />
-                                    </Form.Group>
-                                    <Button type="submit" className="mt-2">Submit Help Request</Button>
-                                </Form>
-                            )}
-
-
-                            <hr />
-                            <h5>Help Requests</h5>
-                            <table className="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Title</th>
-                                        <th>Description</th>
-                                        <th>Rewards</th>
-                                        <th>Date</th>
-                                        <th>Time</th>
-                                        <th>Capacity</th>
-                                        <th>Helpers</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {helpList.length === 0 && (
-                                        <tr>
-                                            <td colSpan="7">No help requests yet.</td>
-                                        </tr>
-                                    )}
-                                    {helpList.map((task) => (
-                                        <tr key={task.id}>
-                                            <td>{task.task_title}</td>
-                                            <td>{task.description}</td>
-                                            <td>{!task.task_rewards ? "none" : task.task_rewards}</td>
-                                            <td>{task.date === null ? "any" : task.date}</td>
-                                            <td>{task.start_time === null ? "any" : task.start_time} - {task.end_time === null ? "" : task.end_time}</td>
-                                            <td>{task.capacity ?? "∞"}</td>
-                                            <td>{task.current_helper ?? 0}</td>
-                                            <td>
-                                                <Button
-                                                    variant="outline-success"
-                                                    size="sm"
-                                                    onClick={() => handleHelp(task.id)}
-                                                    disabled={task.status || task.username === username}
+                                            {helpList.map((task) => (
+                                                <ListGroup.Item
+                                                    action
+                                                    key={task.id}
+                                                    onClick={() => setSelectedTask(task)}
+                                                    active={selectedTask?.id === task.id}
+                                                    className={`cursor-pointer position-relative d-flex align-items-center justify-content-between task-item`}
                                                 >
-                                                    {task.status ? "Full" : "Help"}
-                                                </Button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+
+                                                    {username === task.username && (
+                                                        <i
+                                                            className="bi bi-pencil edit-icon text-warning"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleEditHelp(task);
+                                                            }}
+                                                            style={{ cursor: "pointer" }}
+                                                        ></i>
+                                                    )}
+
+                                                    <span className={`cursor-pointer position-relative d-flex align-items-center justify-content-between task-item`} style={{ pointerEvents: "none" }}>
+                                                        {task.task_title}
+                                                    </span>
+
+
+                                                    {username === task.username && (
+                                                        <i
+                                                            className="bi bi-trash delete-icon text-danger-emphasis"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleDeleteHelp(task.id);
+                                                            }}
+                                                            style={{ cursor: "pointer" }}
+                                                        ></i>
+                                                    )}
+                                                </ListGroup.Item>
+                                            ))}
+                                        </ListGroup>
+                                    </Card>
+                                </Col>
+
+                                {/* RIGHT: Selected Task Details */}
+                                <Col md={8}>
+                                    <Card className="h-100">
+                                        <Card.Header className="bg-primary text-white text-center">
+                                            {selectedTask ? selectedTask.task_title : "📝 Task Details"}
+
+                                        </Card.Header>
+                                        <Card.Body>
+                                            {selectedTask ? (
+                                                <>
+                                                    <p className="text-center">
+                                                        <strong>Posted By:</strong> {selectedTask.username === username ? "Yourself" : selectedTask.username}
+                                                    </p>
+                                                    <div className="text-center">
+                                                        <Image
+                                                            style={{ maxHeight: "400px", objectFit: "cover" }}
+                                                            src={selectedTask.task_image_url}
+                                                            fluid
+                                                        />
+                                                    </div>
+                                                    <p><strong>Description:</strong> {selectedTask.description}</p>
+                                                    <p><strong>Rewards:</strong> {selectedTask.task_rewards || "none"}</p>
+                                                    <p><strong>Date:</strong> {formatDate(selectedTask.date) ?? "any"}</p>
+                                                    <p><strong>Time:</strong> {formatTime(selectedTask.start_time) ?? "any"} - {selectedTask.end_time ?? ""}</p>
+                                                    <p><strong>Capacity:</strong> {selectedTask.capacity ?? "∞"}</p>
+                                                    <p><strong>Helpers Joined:</strong> {selectedTask.current_helper ?? 0}</p>
+                                                    <div className="text-center">
+                                                        <Button
+                                                            variant="outline-success"
+                                                            size="sm"
+                                                            onClick={() => handleHelp(selectedTask.id)}
+                                                            disabled={selectedTask.status || selectedTask.username === username}
+                                                        >
+                                                            {selectedTask.status ? "Full" : "Help"}
+                                                        </Button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <p className="text-center text-muted">Select a task from the list to view details.</p>
+                                            )}
+                                        </Card.Body>
+                                    </Card>
+                                </Col>
+                            </Row>
+
                         </>
                     )}
 

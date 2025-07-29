@@ -17,3 +17,35 @@
 .card-group-hover:hover .delete-btn {
     opacity: 1;
 }
+
+.task-item .edit-icon,
+.task-item .delete-icon {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.task-item:hover .edit-icon,
+.task-item:hover .delete-icon {
+    visibility: visible;
+    opacity: 1;
+}
+
+.task-item.active {
+    background-color: #7c848d !important;
+    /* light gray or whatever you want */
+    color: #17191b !important;
+    /* Bootstrap's default text color */
+}
+
+.shuffle-icon:hover {
+    color: white;
+    text-shadow: 0 0 5px white;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+.shuffle-icon:hover {
+    color: white;
+    text-shadow: 0 0 8px white;
+}

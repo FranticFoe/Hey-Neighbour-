@@ -9,8 +9,8 @@ import CommunityTabs from "../components/CommunityTab";
 export default function Community() {
     const [hasCommunity, setHasCommunity] = useState(false);
     const [communityName, setCommunityName] = useState("");
-    const [events, setEvents] = useState([]);
-    const [helpTasks, setHelpTasks] = useState([]);
+    const [, setEvents] = useState([]);
+    const [, setHelpTasks] = useState([]);
 
     const [joinOptionsModal, setJoinOptionsModal] = useState(false);
     const [modalShow, setModalShow] = useState(false);
