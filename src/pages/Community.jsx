@@ -30,6 +30,7 @@ export default function Community() {
     const { currentUser } = useContext(AuthContext);
     const username = currentUser?.displayName;
     const url = "https://neighbour-api.vercel.app";
+    const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
     useEffect(() => {
         async function checkCommunity() {
@@ -109,7 +110,7 @@ export default function Community() {
         if (window.google) return;
 
         const script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyB9t7gGcJKV4g35C2xDOLFT4zEccZ8GfGk`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}`;
         script.async = true;
         script.onload = () => console.log("Google Maps loaded");
         document.body.appendChild(script);

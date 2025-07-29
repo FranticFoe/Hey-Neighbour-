@@ -11,12 +11,12 @@ export default function CreateCommunityModal({ show, onHide, user }) {
     const mapRef = useRef(null);
     const markerRef = useRef(null);
     const mapInstance = useRef(null);
-
+    const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     // Load Google Maps script ONCE
     useEffect(() => {
         if (!window.google && !document.getElementById("googleMapsScript")) {
             const script = document.createElement("script");
-            script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyB9t7gGcJKV4g35C2xDOLFT4zEccZ8GfGk`;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}`;
             script.async = true;
             script.id = "googleMapsScript";
             script.onload = () => {

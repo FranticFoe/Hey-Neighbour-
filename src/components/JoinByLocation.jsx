@@ -9,13 +9,14 @@ export default function JoinCommunityMap({ show, onHide }) {
     const [loading, setLoading] = useState(false);
     const [map, setMap] = useState(null);
     const { currentUser } = useContext(AuthContext)
+    const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
     useEffect(() => {
         const existingScript = document.getElementById("googleMapsScript");
 
         if (!existingScript) {
             const script = document.createElement("script");
-            script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyB9t7gGcJKV4g35C2xDOLFT4zEccZ8GfGk`;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}`;
             script.id = "googleMapsScript";
             script.async = true;
             script.defer = true;
