@@ -163,7 +163,7 @@ export default function UserPage() {
                 <p className="text-muted" style={{ marginLeft: 10 }}>
                     @{profile.username}
                 </p>
-                <p style={{ marginLeft: 10 }}>{profile.profile_description || <p className="text-muted">This user hasn't written anything about themselves yet.</p>}</p>
+                <p style={{ marginLeft: 10 }}>{profile.profile_description || <span className="text-muted">This user hasn't written anything about themselves yet.</span>}</p>
                 <p className="text-muted" style={{ marginLeft: 10 }}>
                     <i className="bi bi-calendar3"></i> Joined: {formatDate(profile.joined_date)}
                 </p>

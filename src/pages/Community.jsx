@@ -207,7 +207,7 @@ export default function Community() {
 
     return (
         <div className="p-4">
-            <h2>{communityName}</h2>
+            <h2 className="text-center">{communityName}</h2>
             <CommunityTabs />
         </div>
     );
