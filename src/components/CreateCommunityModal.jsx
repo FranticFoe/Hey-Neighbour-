@@ -105,7 +105,7 @@ export default function CreateCommunityModal({ show, onHide, user }) {
         }
 
         try {
-            await axios.post("https://31330b9b-30e1-49d0-a994-e29bc7e7c6b7-00-3toa7yx0y1d12.sisko.replit.dev/create/community", {
+            await axios.post("https://neighbour-api.vercel.app/create/community", {
                 community_name: communityName,
                 community_description: description,
                 neighbour_username: user?.username,

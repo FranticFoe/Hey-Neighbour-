@@ -29,7 +29,7 @@ export default function Community() {
 
     const { currentUser } = useContext(AuthContext);
     const username = currentUser?.displayName;
-    const url = "https://31330b9b-30e1-49d0-a994-e29bc7e7c6b7-00-3toa7yx0y1d12.sisko.replit.dev";
+    const url = "https://neighbour-api.vercel.app";
 
     useEffect(() => {
         async function checkCommunity() {

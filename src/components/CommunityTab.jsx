@@ -23,7 +23,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 
 export default function CommunityTabs() {
     const url =
-        "https://31330b9b-30e1-49d0-a994-e29bc7e7c6b7-00-3toa7yx0y1d12.sisko.replit.dev";
+        "https://neighbour-api.vercel.app";
     const defaultPic = "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png";
 
     const [activeTab, setActiveTab] = useState("event");

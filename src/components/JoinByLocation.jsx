@@ -42,7 +42,7 @@ export default function JoinCommunityMap({ show, onHide }) {
 
                 try {
                     const response = await axios.get(
-                        "https://31330b9b-30e1-49d0-a994-e29bc7e7c6b7-00-3toa7yx0y1d12.sisko.replit.dev/neighbour/availableCommunities/location"
+                        "https://neighbour-api.vercel.app/neighbour/availableCommunities/location"
                     );
 
                     const communities = response.data.communities;
@@ -143,7 +143,7 @@ export default function JoinCommunityMap({ show, onHide }) {
 
         try {
             await axios.post(
-                "https://31330b9b-30e1-49d0-a994-e29bc7e7c6b7-00-3toa7yx0y1d12.sisko.replit.dev/neighbour/join/request",
+                "https://neighbour-api.vercel.app/neighbour/join/request",
                 {
                     username: currentUser.displayName,
                     community_name,
