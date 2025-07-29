@@ -11,22 +11,43 @@ export default function JoinCommunityMap({ show, onHide }) {
     const { currentUser } = useContext(AuthContext)
     const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-    useEffect(() => {
-        const existingScript = document.getElementById("googleMapsScript");
+    function loadGoogleMaps(apiKey) {
+        return new Promise((resolve, reject) => {
+            if (window.google && window.google.maps) {
+                resolve(window.google.maps);
+                return;
+            }
 
-        if (!existingScript) {
+            const existingScript = document.getElementById("googleMapsScript");
+            if (existingScript) {
+                existingScript.onload = () => resolve(window.google.maps);
+                return;
+            }
+
             const script = document.createElement("script");
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}`;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
             script.id = "googleMapsScript";
             script.async = true;
             script.defer = true;
-            script.onload = () => {
-                if (show) handleJoinByLocation();
-            };
+            script.onload = () => resolve(window.google.maps);
+            script.onerror = reject;
             document.body.appendChild(script);
-        } else {
-            if (show) handleJoinByLocation();
-        }
+        });
+    }
+
+
+    useEffect(() => {
+        if (!show) return;
+
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+        loadGoogleMaps(apiKey)
+            .then(() => {
+                handleJoinByLocation();
+            })
+            .catch((err) => {
+                console.error("Failed to load Google Maps script:", err);
+            });
     }, [show]);
 
     const handleJoinByLocation = async () => {
