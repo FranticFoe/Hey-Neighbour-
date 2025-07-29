@@ -9,7 +9,7 @@ export default function JoinCommunityMap({ show, onHide }) {
     const [loading, setLoading] = useState(false);
     const [map, setMap] = useState(null);
     const { currentUser } = useContext(AuthContext)
-    const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    // const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
     function loadGoogleMaps(apiKey) {
         return new Promise((resolve, reject) => {
@@ -72,30 +72,34 @@ export default function JoinCommunityMap({ show, onHide }) {
                     setLoading(false);
 
                     if (window.google && !map) {
-                        const mapInstance = new window.google.maps.Map(
-                            document.getElementById("map"),
-                            {
+                        requestAnimationFrame(() => {
+                            const mapDiv = document.getElementById("map");
+                            if (!mapDiv) {
+                                console.error("Map div not found");
+                                return;
+                            }
+
+                            const mapInstance = new window.google.maps.Map(mapDiv, {
                                 center: { lat: latitude, lng: longitude },
                                 zoom: 14,
-                            }
-                        );
-
-                        communities.forEach((community) => {
-                            const marker = new window.google.maps.Marker({
-                                position: {
-                                    lat: community.latitude,
-                                    lng: community.longitude,
-                                },
-                                map: mapInstance,
-                                title: community.community_name,
-                                icon: {
-                                    url: `${window.location.origin}/house_Marker.png`,
-                                    scaledSize: new window.google.maps.Size(32, 32),
-                                },
                             });
 
-                            const infoWindow = new window.google.maps.InfoWindow({
-                                content: `
+                            communities.forEach((community) => {
+                                const marker = new window.google.maps.Marker({
+                                    position: {
+                                        lat: community.latitude,
+                                        lng: community.longitude,
+                                    },
+                                    map: mapInstance,
+                                    title: community.community_name,
+                                    icon: {
+                                        url: `${window.location.origin}/house_Marker.png`,
+                                        scaledSize: new window.google.maps.Size(32, 32),
+                                    },
+                                });
+
+                                const infoWindow = new window.google.maps.InfoWindow({
+                                    content: `
     <div style="
       font-family: Arial, sans-serif;
       padding: 8px;
@@ -126,26 +130,27 @@ export default function JoinCommunityMap({ show, onHide }) {
       </button>
     </div>
   `,
+                                });
+
+
+
+                                marker.addListener("click", () => {
+                                    infoWindow.open(mapInstance, marker);
+
+                                    // Delay needed for DOM to be available
+                                    setTimeout(() => {
+                                        const joinButton = document.getElementById(`join-${community.community_name}`);
+                                        if (joinButton) {
+                                            joinButton.addEventListener("click", () =>
+                                                handleJoinCommunity(community.community_name)
+                                            );
+                                        }
+                                    }, 100);
+                                });
                             });
 
-
-
-                            marker.addListener("click", () => {
-                                infoWindow.open(mapInstance, marker);
-
-                                // Delay needed for DOM to be available
-                                setTimeout(() => {
-                                    const joinButton = document.getElementById(`join-${community.community_name}`);
-                                    if (joinButton) {
-                                        joinButton.addEventListener("click", () =>
-                                            handleJoinCommunity(community.community_name)
-                                        );
-                                    }
-                                }, 100);
-                            });
-                        });
-
-                        setMap(mapInstance);
+                            setMap(mapInstance);
+                        })
                     }
                 } catch (error) {
                     console.error("Error joining by location:", error);
