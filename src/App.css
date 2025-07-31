@@ -300,3 +300,6 @@
 .toggle-button:active {
     transform: translateY(0);
 }
+
+
+/* you can use brand-icon to make message wave when user receives 1  */

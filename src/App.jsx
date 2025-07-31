@@ -477,7 +477,6 @@ function Footer() {
             {/* Brand Section */}
             <div className="footer-brand">
               <div className="footer-logo">
-                <span className="footer-icon">👋</span>
                 <span className="footer-name">Hey Neighbour!</span>
               </div>
               <p className="footer-description">

@@ -9,6 +9,11 @@ export default function JoinCommunityMap({ show, onHide }) {
     const [loading, setLoading] = useState(false);
     const [map, setMap] = useState(null);
     const { currentUser } = useContext(AuthContext)
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [community_name, setCommunity_name] = useState(null)
+    const [joinresponse, setJoinresponse] = useState(null)
+
+
     // const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
     function loadGoogleMaps(apiKey) {
@@ -158,6 +163,7 @@ export default function JoinCommunityMap({ show, onHide }) {
                 }
             },
             (error) => {
+                //figure where this one comes 
                 alert("Unable to retrieve your location");
                 setLoading(false);
             }
@@ -165,53 +171,116 @@ export default function JoinCommunityMap({ show, onHide }) {
     };
 
     const handleJoinCommunity = async (community_name) => {
-        const confirmJoin = window.confirm(`Do you want to join ${community_name}?`);
-        if (!confirmJoin) return;
-
-        try {
-            await axios.post(
-                "https://neighbour-api.vercel.app/neighbour/join/request",
-                {
-                    username: currentUser.displayName,
-                    community_name,
-                }
-            );
-            alert(`Successfully joined ${community_name}!`);
-        } catch (err) {
-            console.error("Error joining community:", err);
-            alert("Failed to join community.");
-        }
+        //run a modal confirmation before joining
+        setCommunity_name(community_name)
+        setShowConfirm(true);
     };
 
     return (
-        <Modal show={show} onHide={onHide} size="lg" centered>
-            <Modal.Header closeButton>
-                <Modal.Title>Nearby Communities</Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-                {loading ? (
-                    <div className="d-flex justify-content-center">
-                        <Spinner animation="border" variant="primary" />
+        <>
+            <Modal show={show} onHide={onHide} size="lg" centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Nearby Communities</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    {loading ? (
+                        <div className="d-flex justify-content-center">
+                            <Spinner animation="border" variant="primary" />
+                        </div>
+                    ) : (
+                        <>
+                            <div
+                                id="map"
+                                style={{ height: "400px", width: "100%", marginBottom: "1rem" }}
+                            ></div>
+                            <ul>
+                                {communities.map((community) => (
+                                    <li key={community.community_name}>{community.community_name}</li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={onHide}>
+                        Close
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
+
+            <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
+                <Modal.Header closeButton>
+                    <div className="w-100 text-center">
+                        <Modal.Title>Confirm Join</Modal.Title>
                     </div>
-                ) : (
-                    <>
-                        <div
-                            id="map"
-                            style={{ height: "400px", width: "100%", marginBottom: "1rem" }}
-                        ></div>
-                        <ul>
-                            {communities.map((community) => (
-                                <li key={community.community_name}>{community.community_name}</li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-            </Modal.Body>
-            <Modal.Footer>
-                <Button variant="secondary" onClick={onHide}>
-                    Close
-                </Button>
-            </Modal.Footer>
-        </Modal>
+                </Modal.Header>
+                <Modal.Body>
+                    <p className="text-center">Do you want to join the community called {community_name}?</p>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setShowConfirm(false)}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="primary"
+                        onClick={async () => {
+                            try {
+                                await axios.post(
+                                    "https://neighbour-api.vercel.app/neighbour/join/request",
+                                    {
+                                        username: currentUser.displayName,
+                                        community_name,
+                                    }
+                                );
+                                setJoinresponse('success')
+                            } catch (err) {
+                                console.error("Error joining community:", err);
+                                if (err.response.data.message === 'You have already sent a join request.') {
+                                    setJoinresponse('already_sent')
+                                } else {
+                                    setJoinresponse('failed')
+                                }
+                            } finally {
+                                setShowConfirm(false); // always close modal after
+                            }
+                        }}
+                    >
+                        Confirm
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+
+            <Modal
+                show={joinresponse === 'success' || joinresponse === 'failed' || joinresponse === 'already_sent'}
+                onHide={() => setJoinresponse(null)}
+                centered
+                size="m"
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title className="text-center w-100">Join Status</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <div className="text-center py-2">
+                        {joinresponse === 'success' && (
+                            <p className="text-success">
+                                ✅ You have sent a join request to <strong>{community_name}</strong>.
+                            </p>
+                        )}
+                        {joinresponse === 'already_sent' && (
+                            <p className="text-warning">
+                                ⚠️ You already sent a request to <strong>{community_name}</strong>. Check your messages.
+                            </p>
+                        )}
+                        {joinresponse === 'failed' && (
+                            <p className="text-danger">
+                                ❌ Failed to join <strong>{community_name}</strong>. Try again later.
+                            </p>
+                        )}
+                    </div>
+                </Modal.Body>
+            </Modal>
+
+        </>
     );
 }
