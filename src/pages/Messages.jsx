@@ -56,7 +56,6 @@ export default function Messages() {
     return (
         <>
 
-            <p>Git revert failed test this one</p>
             <div className="p-2 text-center">
                 {isLeader
                     ? <JoinRequestsTab communityName={communityName} currentUsername={username} />
