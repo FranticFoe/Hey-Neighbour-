@@ -1,286 +1,267 @@
-import { useEffect, useState } from "react";
-import { Modal, Button, Spinner } from "react-bootstrap";
+import { useEffect, useState, useContext } from "react";
+import { Modal, Button, Spinner, Alert } from "react-bootstrap";
 import axios from "axios";
 import { AuthContext } from "./AuthProvider";
-import { useContext } from "react";
+import GoogleMapDisplay from "./GoogleMapDisplay";
+import JoinConfirmModal from "./JoinConfirmModal";
+import JoinStatusModal from "./JoinStatusModal";
 
 export default function JoinCommunityMap({ show, onHide }) {
     const [communities, setCommunities] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [map, setMap] = useState(null);
-    const { currentUser } = useContext(AuthContext)
+    const [error, setError] = useState(null);
+    const [userLocation, setUserLocation] = useState(null);
     const [showConfirm, setShowConfirm] = useState(false);
-    const [community_name, setCommunity_name] = useState(null)
-    const [joinresponse, setJoinresponse] = useState(null)
+    const [selectedCommunity, setSelectedCommunity] = useState(null);
+    const [joinResponse, setJoinResponse] = useState(null);
+    const [notificationStatus, setNotificationStatus] = useState('show')
 
-
-    // const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
-    function loadGoogleMaps(apiKey) {
-        return new Promise((resolve, reject) => {
-            if (window.google && window.google.maps) {
-                resolve(window.google.maps);
-                return;
-            }
-
-            const existingScript = document.getElementById("googleMapsScript");
-            if (existingScript) {
-                existingScript.onload = () => resolve(window.google.maps);
-                return;
-            }
-
-            const script = document.createElement("script");
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
-            script.id = "googleMapsScript";
-            script.async = true;
-            script.defer = true;
-            script.onload = () => resolve(window.google.maps);
-            script.onerror = reject;
-            document.body.appendChild(script);
-        });
-    }
-
+    const { currentUser } = useContext(AuthContext);
 
     useEffect(() => {
-        if (!show) return;
-
-        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-
-        loadGoogleMaps(apiKey)
-            .then(() => {
-                handleJoinByLocation();
-            })
-            .catch((err) => {
-                console.error("Failed to load Google Maps script:", err);
-            });
+        if (show) {
+            handleJoinByLocation();
+        }
     }, [show]);
 
     const handleJoinByLocation = async () => {
         if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser");
+            setError("Geolocation is not supported by your browser");
             return;
         }
 
         setLoading(true);
+        setError(null);
 
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords;
+                setUserLocation({ lat: latitude, lng: longitude });
 
                 try {
                     const response = await axios.get(
                         "https://neighbour-api.vercel.app/neighbour/availableCommunities/location"
                     );
-
-                    const communities = response.data.communities;
-                    setCommunities(communities);
-                    setLoading(false);
-
-                    if (window.google && !map) {
-                        requestAnimationFrame(() => {
-                            const mapDiv = document.getElementById("map");
-                            if (!mapDiv) {
-                                console.error("Map div not found");
-                                return;
-                            }
-
-                            const mapInstance = new window.google.maps.Map(mapDiv, {
-                                center: { lat: latitude, lng: longitude },
-                                zoom: 14,
-                            });
-
-                            communities.forEach((community) => {
-                                const marker = new window.google.maps.Marker({
-                                    position: {
-                                        lat: community.latitude,
-                                        lng: community.longitude,
-                                    },
-                                    map: mapInstance,
-                                    title: community.community_name,
-                                    icon: {
-                                        url: `${window.location.origin}/house_Marker.png`,
-                                        scaledSize: new window.google.maps.Size(32, 32),
-                                    },
-                                });
-
-                                const infoWindow = new window.google.maps.InfoWindow({
-                                    content: `
-    <div style="
-      font-family: Arial, sans-serif;
-      padding: 8px;
-      border-radius: 8px;
-      background-color: #fefefe;
-      max-width: 200px;
-      
-      text-align: center;
-    ">
-      <strong style="
-        font-size: 16px;
-        display: block;
-        margin-bottom: 8px;
-        color: #333;
-      ">
-        ${community.community_name}
-      </strong>
-      <button id="join-${community.community_name}" style="
-        background-color: #28a745;
-        color: white;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-      ">
-        Join
-      </button>
-    </div>
-  `,
-                                });
-
-
-
-                                marker.addListener("click", () => {
-                                    infoWindow.open(mapInstance, marker);
-
-                                    // Delay needed for DOM to be available
-                                    setTimeout(() => {
-                                        const joinButton = document.getElementById(`join-${community.community_name}`);
-                                        if (joinButton) {
-                                            joinButton.addEventListener("click", () =>
-                                                handleJoinCommunity(community.community_name)
-                                            );
-                                        }
-                                    }, 100);
-                                });
-                            });
-
-                            setMap(mapInstance);
-                        })
-                    }
+                    setCommunities(response.data.communities || []);
                 } catch (error) {
-                    console.error("Error joining by location:", error);
+                    console.error("Error fetching communities:", error);
+                    setError("Failed to load nearby communities. Please try again.");
+                } finally {
                     setLoading(false);
                 }
             },
             (error) => {
-                //figure where this one comes 
-                alert("Unable to retrieve your location");
+                console.error("Geolocation error:", error);
+                setError("Unable to retrieve your location. Please enable location services.");
                 setLoading(false);
             }
         );
     };
 
-    const handleJoinCommunity = async (community_name) => {
-        //run a modal confirmation before joining
-        setCommunity_name(community_name)
+    const handleJoinCommunity = (communityName) => {
+        setSelectedCommunity(communityName);
         setShowConfirm(true);
+    };
+
+    const confirmJoinCommunity = async () => {
+        try {
+            await axios.post(
+                "https://neighbour-api.vercel.app/neighbour/join/request",
+                {
+                    username: currentUser.displayName,
+                    community_name: selectedCommunity,
+                }
+            );
+            setJoinResponse('success');
+        } catch (err) {
+            console.error("Error joining community:", err);
+            if (err.response?.data?.message === 'You have already sent a join request.') {
+                setJoinResponse('already_sent');
+            } else {
+                setJoinResponse('failed');
+            }
+        } finally {
+            setShowConfirm(false);
+        }
+    };
+
+    const handleRetry = () => {
+        setError(null);
+        handleJoinByLocation();
     };
 
     return (
         <>
-            <Modal show={show} onHide={onHide} size="lg" centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>Nearby Communities</Modal.Title>
+            <Modal
+                show={show}
+                onHide={onHide}
+                size="xl"
+                centered
+                className="join-community-modal"
+            >
+                <Modal.Header className="bg-primary text-white border-0">
+                    <Modal.Title className="d-flex align-items-center gap-2">
+                        <span style={{ fontSize: '1.2em' }}>🗺️</span>
+                        <span>Discover Nearby Communities</span>
+                    </Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+
+                <Modal.Body className="p-0">
                     {loading ? (
-                        <div className="d-flex justify-content-center">
-                            <Spinner animation="border" variant="primary" />
+                        <div className="d-flex flex-column align-items-center justify-content-center p-5">
+                            <Spinner
+                                animation="border"
+                                variant="primary"
+                                style={{ width: '3rem', height: '3rem' }}
+                            />
+                            <p className="mt-3 text-muted">Finding communities near you...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="p-4">
+                            <Alert variant="danger" className="d-flex align-items-center">
+                                <span className="me-2">⚠️</span>
+                                <div className="flex-grow-1">
+                                    <strong>Location Error</strong>
+                                    <br />
+                                    {error}
+                                </div>
+                            </Alert>
+                            <div className="text-center">
+                                <Button variant="primary" onClick={handleRetry}>
+                                    <span className="me-2">🔄</span>
+                                    Try Again
+                                </Button>
+                            </div>
                         </div>
                     ) : (
                         <>
-                            <div
-                                id="map"
-                                style={{ height: "400px", width: "100%", marginBottom: "1rem" }}
-                            ></div>
-                            <ul>
-                                {communities.map((community) => (
-                                    <li key={community.community_name}>{community.community_name}</li>
-                                ))}
-                            </ul>
+                            <div className="position-relative">
+                                <GoogleMapDisplay
+                                    userLocation={userLocation}
+                                    communities={communities}
+                                    onJoinCommunity={handleJoinCommunity}
+                                />
+
+                                {/* Floating info card */}
+                                <div
+                                    className="position-absolute top-0 end-0 m-3 bg-white rounded shadow-sm border"
+                                    style={{
+                                        zIndex: 1000,
+                                        maxWidth: '280px',
+                                        backdropFilter: 'blur(10px)',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.95)'
+                                    }}
+                                >
+                                    {notificationStatus === 'show' && (
+                                        <div className="p-3">
+                                            <div className="d-flex justify-content-between  py-2 ">
+                                                <h6 className="mb-2 d-flex align-items-center gap-2">
+                                                    <span>🏘️</span>
+                                                    <span>Communities Found</span>
+                                                </h6>
+                                                <i
+                                                    className="bi bi-x cursor-pointer fs-4"
+                                                    style={{ transform: "translateY(-15px) " }}
+                                                    onClick={() => setNotificationStatus('hide')}
+                                                ></i>
+                                            </div>
+
+                                            <div className="mb-2">
+                                                <span className="badge bg-primary fs-6">
+                                                    {communities.length} nearby
+                                                </span>
+                                            </div>
+                                            <small className="text-muted">
+                                                Click on map markers to join a community
+                                            </small>
+                                        </div>
+                                    )}
+
+                                </div>
+                            </div>
+
+                            {/* Community list section */}
+                            {communities.length > 0 && (
+                                <div className="p-4 bg-light border-top">
+                                    <h6 className="mb-3 d-flex align-items-center gap-2">
+                                        📋 <span>Available Communities</span>
+                                    </h6>
+                                    <div className="row g-2">
+                                        {communities.map((community, index) => (
+                                            <div key={community.community_name} className="col-md-6 col-lg-4">
+                                                <div
+                                                    className="card h-100 border-0 shadow-sm hover-shadow"
+                                                    style={{
+                                                        transition: 'all 0.2s ease',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => handleJoinCommunity(community.community_name)}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = 'translateY(0)';
+                                                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                                                    }}
+                                                >
+                                                    <div className="card-body p-3 text-center">
+                                                        <div className="mb-2">
+                                                            <span
+                                                                className="badge rounded-pill text-white"
+                                                                style={{
+                                                                    backgroundColor: `hsl(${(index * 137.5) % 360}, 70%, 50%)`,
+                                                                    fontSize: '0.75rem'
+                                                                }}
+                                                            >
+                                                                #{index + 1}
+                                                            </span>
+                                                        </div>
+                                                        <h6 className="card-title mb-2 text-truncate">
+                                                            {community.community_name}
+                                                        </h6>
+                                                        <small className="text-muted">
+                                                            Click to join
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </>
                     )}
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={onHide}>
-                        Close
-                    </Button>
-                </Modal.Footer>
-            </Modal>
 
-
-            <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
-                <Modal.Header closeButton>
-                    <div className="w-100 text-center">
-                        <Modal.Title>Confirm Join</Modal.Title>
+                <Modal.Footer className="border-0 bg-light">
+                    <div className="d-flex justify-content-between align-items-center w-100">
+                        <small className="text-muted">
+                            {!loading && !error && communities.length > 0 && (
+                                <span>💡 Tip: Click map markers for quick access</span>
+                            )}
+                        </small>
+                        <Button variant="outline-secondary" onClick={onHide}>
+                            <span className="me-1">✕</span>
+                            Close
+                        </Button>
                     </div>
-                </Modal.Header>
-                <Modal.Body>
-                    <p className="text-center">Do you want to join the community called {community_name}?</p>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowConfirm(false)}>
-                        Cancel
-                    </Button>
-                    <Button
-                        variant="primary"
-                        onClick={async () => {
-                            try {
-                                await axios.post(
-                                    "https://neighbour-api.vercel.app/neighbour/join/request",
-                                    {
-                                        username: currentUser.displayName,
-                                        community_name,
-                                    }
-                                );
-                                setJoinresponse('success')
-                            } catch (err) {
-                                console.error("Error joining community:", err);
-                                if (err.response.data.message === 'You have already sent a join request.') {
-                                    setJoinresponse('already_sent')
-                                } else {
-                                    setJoinresponse('failed')
-                                }
-                            } finally {
-                                setShowConfirm(false); // always close modal after
-                            }
-                        }}
-                    >
-                        Confirm
-                    </Button>
                 </Modal.Footer>
-            </Modal>
+            </Modal >
 
-            <Modal
-                show={joinresponse === 'success' || joinresponse === 'failed' || joinresponse === 'already_sent'}
-                onHide={() => setJoinresponse(null)}
-                centered
-                size="m"
-            >
-                <Modal.Header closeButton>
-                    <Modal.Title className="text-center w-100">Join Status</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <div className="text-center py-2">
-                        {joinresponse === 'success' && (
-                            <p className="text-success">
-                                ✅ You have sent a join request to <strong>{community_name}</strong>.
-                            </p>
-                        )}
-                        {joinresponse === 'already_sent' && (
-                            <p className="text-warning">
-                                ⚠️ You already sent a request to <strong>{community_name}</strong>. Check your messages.
-                            </p>
-                        )}
-                        {joinresponse === 'failed' && (
-                            <p className="text-danger">
-                                ❌ Failed to join <strong>{community_name}</strong>. Try again later.
-                            </p>
-                        )}
-                    </div>
-                </Modal.Body>
-            </Modal>
+            <JoinConfirmModal
+                show={showConfirm}
+                onHide={() => setShowConfirm(false)}
+                onConfirm={confirmJoinCommunity}
+                communityName={selectedCommunity}
+            />
 
+            <JoinStatusModal
+                show={!!joinResponse}
+                onHide={() => setJoinResponse(null)}
+                status={joinResponse}
+                communityName={selectedCommunity}
+            />
         </>
     );
 }
