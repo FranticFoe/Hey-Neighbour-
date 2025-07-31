@@ -2,13 +2,15 @@ import JoinRequestsTab from "../components/JoinRequestTab"
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../components/AuthProvider";
-import { ToggleButton, ToggleButtonGroup } from "react-bootstrap";
+import { Button, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
+import SentRequestTab from "../components/SentRequestsTab";
 export default function Messages() {
 
     const [communityName, setCommunityName] = useState("");
     const { currentUser } = useContext(AuthContext);
     const username = currentUser?.displayName;
     const [isLeader, setIsLeader] = useState(false);
+    const [mailTab, setMailTab] = useState("messages")
     const url = "https://neighbour-api.vercel.app"
 
     useEffect(() => {
@@ -55,27 +57,49 @@ export default function Messages() {
 
     return (
         <>
-
             <div className="p-2 text-center">
-                {isLeader
-                    ? <JoinRequestsTab communityName={communityName} currentUsername={username} />
 
-                    : <p className="mt-3" style={{ fontSize: "1.2rem" }}>
-                        Message tab is still in progress. For now use{" "}
-                        <img
-                            onClick={() => window.open("https://web.whatsapp.com/")}
-                            src="https://images.seeklogo.com/logo-png/16/1/whatsapp-logo-png_seeklogo-168310.png"
-                            alt="WhatsApp"
-                            style={{
-                                width: "24px",
-                                height: "24px",
-                                cursor: "pointer",
-                                verticalAlign: "middle",
-                                marginLeft: "4px"
-                            }}
-                        />
-                    </p>}
+                <ToggleButtonGroup type="radio" name="tabs" defaultValue={"messages"} onChange={(val) => setMailTab(val)}>
+                    <ToggleButton id="tab-messages" value={"messages"}>
+                        Messages
+                    </ToggleButton>
+                    <ToggleButton id="tab-requests" value={"inbox"}>
+                        {isLeader ? "Join Requests" : "Sent Requests"}
+                    </ToggleButton>
+                </ToggleButtonGroup>
+
+                {mailTab === "messages" && (
+                    <>
+                        <p className="mt-3" style={{ fontSize: "1.2rem" }}>
+                            Message tab is still in progress. For now use{" "}
+                            <img
+                                onClick={() => window.open("https://web.whatsapp.com/")}
+                                src="https://images.seeklogo.com/logo-png/16/1/whatsapp-logo-png_seeklogo-168310.png"
+                                alt="WhatsApp"
+                                style={{
+                                    width: "24px",
+                                    height: "24px",
+                                    cursor: "pointer",
+                                    verticalAlign: "middle",
+                                    marginLeft: "4px"
+                                }}
+                            />
+                        </p>
+                    </>
+                )
+                }
+
+                {mailTab === "inbox" && (
+                    <>
+                        {isLeader ? <JoinRequestsTab communityName={communityName} currentUsername={username} /> : <SentRequestTab communityName={communityName} currentUsername={username} />}
+                    </>
+                )
+                }
+
             </div>
         </>
     )
 }
+
+// 
+

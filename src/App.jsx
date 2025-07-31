@@ -51,7 +51,6 @@ function App() {
           <div className="navbar-container">
             {/* Brand */}
             <Link to="/" className="brand">
-              <div className="brand-icon">👋</div>
               <img src="/community_logo.png" alt="Hey Neighbour Logo" className="brand-logo mt-2" />
               <div className="brand-text">
                 <span className="brand-name">Hey Neighbour!</span>
