@@ -2,6 +2,7 @@ import JoinRequestsTab from "../components/JoinRequestTab"
 import { useEffect, useState, useContext } from "react";
 import axios from "axios";
 import { AuthContext } from "../components/AuthProvider";
+import { ToggleButton, ToggleButtonGroup } from "react-bootstrap";
 
 export default function Messages() {
 
@@ -55,25 +56,41 @@ export default function Messages() {
 
     return (
         <>
+            <ToggleButtonGroup defaultValue={"SentRequestsTab"}>
+                <ToggleButton value={"SentRequestsTab"}>
+                    <span>Sent Requests</span>
+                </ToggleButton>
+                <ToggleButton value={"Messages"}>
+                    <span>Messages</span>
+                </ToggleButton>
+            </ToggleButtonGroup>
+
             <div className="p-2 text-center">
                 {isLeader
                     ? <JoinRequestsTab communityName={communityName} currentUsername={username} />
 
-                    : <p className="mt-3" style={{ fontSize: "1.2rem" }}>
-                        Message tab is still in progress. For now use{" "}
-                        <img
-                            onClick={() => window.open("https://web.whatsapp.com/")}
-                            src="https://images.seeklogo.com/logo-png/16/1/whatsapp-logo-png_seeklogo-168310.png"
-                            alt="WhatsApp"
-                            style={{
-                                width: "24px",
-                                height: "24px",
-                                cursor: "pointer",
-                                verticalAlign: "middle",
-                                marginLeft: "4px"
-                            }}
-                        />
-                    </p>}
+                    :
+                    //make this part a toggle button where the user can switch to messages or server messages 
+                    (
+                        <>
+
+
+                            <p className="mt-3" style={{ fontSize: "1.2rem" }}>
+                                Message tab is still in progress. For now use{" "}
+                                <img
+                                    onClick={() => window.open("https://web.whatsapp.com/")}
+                                    src="https://images.seeklogo.com/logo-png/16/1/whatsapp-logo-png_seeklogo-168310.png"
+                                    alt="WhatsApp"
+                                    style={{
+                                        width: "24px",
+                                        height: "24px",
+                                        cursor: "pointer",
+                                        verticalAlign: "middle",
+                                        marginLeft: "4px"
+                                    }}
+                                />
+                            </p>
+                        </>)}
             </div>
         </>
     )
