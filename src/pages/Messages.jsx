@@ -56,14 +56,7 @@ export default function Messages() {
 
     return (
         <>
-            <ToggleButtonGroup defaultValue={"SentRequestsTab"}>
-                <ToggleButton value={"SentRequestsTab"}>
-                    <span>Sent Requests</span>
-                </ToggleButton>
-                <ToggleButton value={"Messages"}>
-                    <span>Messages</span>
-                </ToggleButton>
-            </ToggleButtonGroup>
+
 
             <div className="p-2 text-center">
                 {isLeader
