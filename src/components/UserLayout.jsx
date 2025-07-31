@@ -23,7 +23,7 @@ export default function UserLayout() {
     const navLinks = [
         { to: "/user", label: "Home", icon: "🏠" },
         { to: "/user/community", label: "Community", icon: "👥" },
-        { to: "/user/messages", label: "Mailbox", icon: "📪" },
+        { to: "/user/messages", label: "Messages", icon: "💬" },
         { to: "/user/logout", label: "Logout", icon: "🚪" }
     ]
 
