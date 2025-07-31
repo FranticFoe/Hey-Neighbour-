@@ -56,7 +56,6 @@ export default function Messages() {
 
     return (
         <>
-            <p> The Git revert failed again</p>
 
             <div className="p-2 text-center">
                 {isLeader
