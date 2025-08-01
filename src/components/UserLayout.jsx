@@ -1,10 +1,19 @@
 import { Link, Outlet, useLocation } from "react-router-dom"
 import { useState, useEffect } from "react"
+import axios from "axios"
+import { useContext } from "react"
+import { AuthContext } from "./AuthProvider"
 
 export default function UserLayout() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [scrolled, setScrolled] = useState(false)
     const location = useLocation()
+    const [count, setCount] = useState(0);
+    const [, setIsLeader] = useState(false);
+    const { currentUser } = useContext(AuthContext);
+    const [communityName, setCommunityName] = useState("");
+    const username = currentUser?.displayName;
+    const url = "https://neighbour-api.vercel.app"
 
     // Handle scroll effect for navbar
     useEffect(() => {
@@ -20,10 +29,56 @@ export default function UserLayout() {
         setIsMenuOpen(false)
     }, [location])
 
+    useEffect(() => {
+        if (!username) return;
+
+        async function checkisLeader() {
+            try {
+                const res = await axios.get(`${url}/neighbour/community/${username}`);
+                const name = res.data.community[0]?.community_name;
+                setCommunityName(name);
+                // Check if user is leader
+                const leaderRes = await axios.get(
+                    `${url}/neighbour/isLeader/${username}/community/${name}`
+                );
+                console.log("leaderRes", leaderRes)
+                setIsLeader(leaderRes.data.status);
+
+            } catch (err) {
+                console.error("Error loading community data:", err);
+            }
+        }
+        checkisLeader();
+    }, [username]);
+
+    useEffect(() => {
+        async function fetchUnreadCount() {
+            try {
+                const res = await axios.get(`${url}/neighbour/unread_count`, {
+                    params: { username, community_name: communityName }
+                });
+                setCount(parseInt(res.data.unread_count || 0));
+            } catch (err) {
+                console.error("Failed to fetch unread count", err);
+            }
+        }
+
+        if (username) {
+            fetchUnreadCount();
+        }
+    }, [username, communityName]);
+
+
     const navLinks = [
         { to: "/user", label: "Home", icon: "🏠" },
         { to: "/user/community", label: "Community", icon: "👥" },
-        { to: "/user/messages", label: "Mailbox", icon: "📪" },
+        {
+            to: "/user/messages", label: <> Mailbox 📪{count !== 0 && (
+                <span className="badge bg-danger rounded-pill ms-2">
+                    {count}
+                </span>
+            )}</>,
+        },
         { to: "/user/logout", label: "Logout", icon: "🚪" }
     ]
 

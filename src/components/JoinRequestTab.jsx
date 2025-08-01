@@ -14,6 +14,7 @@ export default function JoinRequestsTab({ communityName, currentUsername }) {
         try {
             const res = await axios.get(`${url}/neighbour/join/request/${communityName}`);
             setRequests(res.data.requests || []);
+            console.log("Join requests number:", res.data.Info.rowCount)
         } catch (err) {
             console.error("Failed to fetch requests", err);
         } finally {
@@ -80,7 +81,23 @@ export default function JoinRequestsTab({ communityName, currentUsername }) {
                 <p>No join requests for this community.</p>
             ) : (
                 requests.map(({ sender_name }) => (
-                    <Card key={sender_name} className="mb-2 p-3">
+                    <Card
+                        key={sender_name}
+                        className="mb-2 p-3"
+                        onClick={async () => {
+                            try {
+                                await axios.put(`${url}/neighbour/sent_request/has_read`, {
+                                    community_name: communityName,
+                                    username: currentUsername,
+                                    senderName: sender_name,
+                                });
+                                // Optional: refresh list or decrease count manually
+                            } catch (err) {
+                                console.error("Failed to mark as read", err);
+                            }
+                        }}
+                        style={{ cursor: "pointer" }}
+                    >
                         <div className="d-flex justify-content-between align-items-center">
                             <strong>{sender_name} wants to join the community</strong>
                             <div>

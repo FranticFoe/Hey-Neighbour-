@@ -13,6 +13,7 @@ export default function SentRequestTab({ communityName, currentUsername }) {
         try {
             const res = await axios.get(`${url}/neighbour/sent_request/${currentUsername}`);
             setRequests(res.data.requests.rows || []);
+            console.log("Sent request number:", res.data.requests.rowCount)
         } catch (err) {
             console.error("Failed to fetch requests", err);
             setError("Unable to fetch your sent requests.");
@@ -37,7 +38,23 @@ export default function SentRequestTab({ communityName, currentUsername }) {
                 <p>You have not made a join request.</p>
             ) : (
                 requests.map(({ id, community_name }) => (
-                    <Card key={id} className="mb-2 p-3">
+                    <Card
+                        key={id}
+                        className="mb-2 p-3"
+                        onClick={async () => {
+                            try {
+                                await axios.put(`${url}/neighbour/join_request/has_read`, {
+                                    community_name: community_name,
+                                    username: currentUsername,
+                                });
+                                console.log("Community name:", community_name);
+                                console.log("Username:", currentUsername);
+                            } catch (err) {
+                                console.error("Failed to mark as read", err);
+                            }
+                        }}
+                        style={{ cursor: "pointer" }}
+                    >
                         <strong>Your request to join <b>{community_name}</b> is still pending.</strong>
                     </Card>
                 ))

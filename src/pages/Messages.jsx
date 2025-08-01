@@ -52,9 +52,6 @@ export default function Messages() {
         checkisLeader();
     }, [username]);
 
-    console.log("importantinfo:", username)
-    console.log("alsoimportant:", communityName)
-
     return (
         <>
             <div className="p-2 text-center">
