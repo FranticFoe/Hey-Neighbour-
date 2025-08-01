@@ -3,6 +3,7 @@ import { useState, useEffect } from "react"
 import axios from "axios"
 import { useContext } from "react"
 import { AuthContext } from "./AuthProvider"
+import { NotificationContext } from "./NotificationProvider"
 
 export default function UserLayout() {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -14,7 +15,7 @@ export default function UserLayout() {
     const [communityName, setCommunityName] = useState("");
     const username = currentUser?.displayName;
     const url = "https://neighbour-api.vercel.app"
-
+    const { refreshKey } = useContext(NotificationContext);
     // Handle scroll effect for navbar
     useEffect(() => {
         const handleScroll = () => {
@@ -63,17 +64,24 @@ export default function UserLayout() {
             }
         }
 
+        const interval = setInterval(() => {
+            if (currentUsername) {
+                fetchUnreadCount();
+            }
+        }, 300000);
+
+
         if (username) {
             fetchUnreadCount();
         }
-    }, [username, communityName]);
+    }, [username, communityName, refreshKey]);
 
 
     const navLinks = [
         { to: "/user", label: "Home", icon: "🏠" },
         { to: "/user/community", label: "Community", icon: "👥" },
         {
-            to: "/user/messages", label: <> Mailbox 📪{count !== 0 && (
+            to: "/user/messages", label: <> Mailbox  {count !== 0 ? "📫" : "📪"} {count !== 0 && (
                 <span className="badge bg-danger rounded-pill ms-2">
                     {count}
                 </span>

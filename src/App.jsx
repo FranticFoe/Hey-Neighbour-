@@ -11,6 +11,7 @@ import CommunityList from './pages/CommunityList'
 import LogOut from './components/LogOut'
 import Messages from './pages/Messages'
 import Community from './pages/Community'
+import { NotificationProvider } from './components/NotificationProvider';
 
 function App() {
   function Layout() {
@@ -410,21 +411,23 @@ function App() {
   return (
     <>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Home />} />
-              <Route path="authentication" element={<Authenticate />} />
-              <Route path="communities" element={<CommunityList />} />
-            </Route>
-            <Route path="/user" element={<UserLayout />}>
-              <Route index element={<UserPage />} />
-              <Route path="community" element={<Community />} />
-              <Route path="messages" element={<Messages />} />
-              <Route path="logout" element={<LogOut />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <NotificationProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Home />} />
+                <Route path="authentication" element={<Authenticate />} />
+                <Route path="communities" element={<CommunityList />} />
+              </Route>
+              <Route path="/user" element={<UserLayout />}>
+                <Route index element={<UserPage />} />
+                <Route path="community" element={<Community />} />
+                <Route path="messages" element={<Messages />} />
+                <Route path="logout" element={<LogOut />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </NotificationProvider>
       </AuthProvider>
     </>
   )
