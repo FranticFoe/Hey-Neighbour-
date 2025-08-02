@@ -25,6 +25,7 @@ export default function SentRequestTab({ communityName, currentUsername, onUnrea
 
             // Calculate unread count based on sender_has_read and notify parent
             const unreadCount = fetchedRequests.filter(req => !req.sender_has_read).length;
+            console.log(unreadCount)
             if (onUnreadCountChange) {
                 onUnreadCountChange(unreadCount);
             }
@@ -73,13 +74,13 @@ export default function SentRequestTab({ communityName, currentUsername, onUnrea
         try {
             if (currentReadStatus) {
                 // Mark as unread
-                await axios.put(`${url}/neighbour/join_request/has_unread`, {
+                await axios.put(`${url}/neighbour/sent_request/has_unread`, {
                     community_name: communityName,
                     username: currentUsername,
                 });
             } else {
                 // Mark as read
-                await axios.put(`${url}/neighbour/join_request/has_read`, {
+                await axios.put(`${url}/neighbour/sent_request/has_read`, {
                     community_name: communityName,
                     username: currentUsername,
                 });
@@ -128,7 +129,7 @@ export default function SentRequestTab({ communityName, currentUsername, onUnrea
         }
     }, [communityName, currentUsername]);
 
-    // Auto-refresh every 30 seconds to catch updates
+    // Auto-refresh every 300 seconds to catch updates
     useEffect(() => {
         const interval = setInterval(() => {
             if (currentUsername) {

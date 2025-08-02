@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Card, Button, Spinner, Alert, Badge } from "react-bootstrap";
+import { useContext } from "react";
+import { NotificationContext } from "./NotificationProvider";
 
 const url = "https://neighbour-api.vercel.app";
 
@@ -8,7 +10,9 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState({});
+    const [markingAsRead, setMarkingAsRead] = useState({});
     const [message, setMessage] = useState(null);
+    const { refreshKey, triggerRefresh } = useContext(NotificationContext);
 
     const fetchJoinRequests = async () => {
         try {
@@ -18,9 +22,12 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
             setRequests(fetchedRequests);
             console.log("Join requests number:", res.data.Info.rowCount);
 
+            // Calculate unread count based on leader_has_read
+            const unreadCount = fetchedRequests.filter(req => !req.leader_has_read).length;
+
             // Notify parent component about unread count
             if (onUnreadCountChange) {
-                onUnreadCountChange(fetchedRequests.length);
+                onUnreadCountChange(unreadCount);
             }
         } catch (err) {
             console.error("Failed to fetch requests", err);
@@ -56,12 +63,13 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
             });
 
             // Update local state immediately
-            const updatedRequests = requests.filter((req) => req.username !== senderName);
+            const updatedRequests = requests.filter((req) => req.sender_name !== senderName);
             setRequests(updatedRequests);
 
             // Update unread count
+            const unreadCount = updatedRequests.filter(req => !req.leader_has_read).length;
             if (onUnreadCountChange) {
-                onUnreadCountChange(updatedRequests.length);
+                onUnreadCountChange(unreadCount);
             }
 
             setMessage({ type: 'success', text: `Accepted ${senderName}'s request.` });
@@ -87,12 +95,13 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
             });
 
             // Update local state immediately
-            const updatedRequests = requests.filter((req) => req.username !== senderName);
+            const updatedRequests = requests.filter((req) => req.sender_name !== senderName);
             setRequests(updatedRequests);
 
             // Update unread count
+            const unreadCount = updatedRequests.filter(req => !req.leader_has_read).length;
             if (onUnreadCountChange) {
-                onUnreadCountChange(updatedRequests.length);
+                onUnreadCountChange(unreadCount);
             }
 
             setMessage({ type: 'info', text: `Declined ${senderName}'s request.` });
@@ -106,16 +115,65 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
         }
     };
 
-    const markAsRead = async (senderName) => {
+    const toggleReadStatus = async (senderName, currentReadStatus) => {
+        if (markingAsRead[senderName]) return; // Prevent double-clicking
+
+        setMarkingAsRead(prev => ({ ...prev, [senderName]: true }));
+
         try {
-            await axios.put(`${url}/neighbour/sent_request/has_read`, {
-                community_name: communityName,
-                username: currentUsername,
-                senderName: senderName,
-            });
+            if (currentReadStatus) {
+                // Mark as unread
+                await axios.put(`${url}/neighbour/join_request/has_unread`, {
+                    community_name: communityName,
+                    senderName: senderName,
+                });
+            } else {
+                // Mark as read
+                await axios.put(`${url}/neighbour/join_request/has_read`, {
+                    community_name: communityName,
+                    username: currentUsername,
+                    senderName: senderName,
+                });
+            }
+            triggerRefresh()
+
+            // Update local state immediately for better UX
+            setRequests(prev =>
+                prev.map(req =>
+                    req.sender_name === senderName
+                        ? { ...req, leader_has_read: !currentReadStatus }
+                        : req
+                )
+            );
+
+            // Update unread count
+            const newUnreadCount = requests.filter(req => {
+                if (req.sender_name === senderName) {
+                    return currentReadStatus; // If currently read, it will become unread
+                }
+                return !req.leader_has_read;
+            }).length;
+
+            if (onUnreadCountChange) {
+                onUnreadCountChange(newUnreadCount);
+            }
+
+            console.log(`Marked ${senderName}'s request as ${currentReadStatus ? 'unread' : 'read'}`);
         } catch (err) {
-            console.error("Failed to mark as read", err);
+            console.error("Failed to toggle read status", err);
+            setMessage({ type: 'danger', text: `Failed to update message status. Please try again.` });
+            setTimeout(() => setMessage(null), 3000);
+        } finally {
+            setMarkingAsRead(prev => ({ ...prev, [senderName]: false }));
         }
+    };
+
+    const getStatusColor = (hasRead) => {
+        return hasRead ? 'success' : 'warning';
+    };
+
+    const getStatusText = (hasRead) => {
+        return hasRead ? 'Read' : 'Unread';
     };
 
     if (loading) {
@@ -162,12 +220,16 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
                 </Card>
             ) : (
                 <div className="requests-list">
-                    {requests.map(({ sender_name, created_at }) => (
+                    {requests.map(({ sender_name, created_at, leader_has_read }) => (
                         <Card
                             key={sender_name}
-                            className="request-card mb-3"
-                            onClick={() => markAsRead(sender_name)}
-                            style={{ cursor: "pointer" }}
+                            className={`request-card mb-3 ${!leader_has_read ? 'unread-card' : 'read-card'}`}
+                            onClick={() => toggleReadStatus(sender_name, leader_has_read)}
+                            style={{
+                                cursor: markingAsRead[sender_name] ? 'wait' : 'pointer',
+                                transform: markingAsRead[sender_name] ? 'scale(0.98)' : 'scale(1)',
+                                transition: 'all 0.3s ease'
+                            }}
                         >
                             <Card.Body className="p-4">
                                 <div className="d-flex justify-content-between align-items-start">
@@ -176,10 +238,21 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
                                             <div className="avatar-placeholder me-3">
                                                 <i className="bi bi-person-circle" style={{ fontSize: '2.5rem', color: '#007bff' }}></i>
                                             </div>
-                                            <div>
-                                                <h5 className="mb-1">
-                                                    <strong className="text-primary">{sender_name}</strong>
-                                                </h5>
+                                            <div className="flex-grow-1">
+                                                <div className="d-flex align-items-center gap-2 mb-1">
+                                                    <h5 className="mb-0">
+                                                        <strong className="text-primary">{sender_name}</strong>
+                                                    </h5>
+                                                    <Badge
+                                                        bg={getStatusColor(leader_has_read)}
+                                                        className="status-badge"
+                                                    >
+                                                        {getStatusText(leader_has_read)}
+                                                    </Badge>
+                                                    {markingAsRead[sender_name] && (
+                                                        <Spinner size="sm" animation="border" />
+                                                    )}
+                                                </div>
                                                 <p className="mb-0 text-muted">
                                                     wants to join your community
                                                 </p>
@@ -246,8 +319,8 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
 
                                 <div className="request-footer mt-3 pt-3 border-top">
                                     <small className="text-primary">
-                                        <i className="bi bi-info-circle me-1"></i>
-                                        Click anywhere on this card to mark as read
+                                        <i className="bi bi-circle-fill me-1" style={{ fontSize: '0.5rem' }}></i>
+                                        Click to {leader_has_read ? 'mark as unread' : 'mark as read'}
                                     </small>
                                 </div>
                             </Card.Body>
@@ -278,19 +351,19 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
                     border-radius: 15px;
                     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
                     transition: all 0.3s ease;
-                    background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
                     position: relative;
                     overflow: hidden;
                 }
 
-                .request-card::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 4px;
-                    height: 100%;
-                    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+                .unread-card {
+                    background: linear-gradient(135deg, #ffffff 0%, #fffbf0 100%);
+                    border-left: 4px solid #ffc107;
+                }
+
+                .read-card {
+                    background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+                    border-left: 4px solid #28a745;
+                    opacity: 0.9;
                 }
 
                 .request-card:hover {
@@ -330,6 +403,12 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
                 .btn-danger.action-btn {
                     background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%);
                     border: none;
+                }
+
+                .status-badge {
+                    font-size: 0.75rem;
+                    padding: 0.4rem 0.6rem;
+                    border-radius: 20px;
                 }
 
                 .request-footer {
@@ -376,6 +455,11 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
                         align-self: stretch;
                         flex-direction: row;
                         justify-content: space-between;
+                    }
+
+                    .status-badge {
+                        font-size: 0.7rem;
+                        padding: 0.3rem 0.5rem;
                     }
                 }
 

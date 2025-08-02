@@ -69,7 +69,6 @@ export default function Messages() {
             }
 
             setUnreadCounts({
-                messages: parseInt(messageRes.data.unread_count || 0),
                 requests: requestCount
             });
         } catch (err) {
@@ -101,7 +100,7 @@ export default function Messages() {
     }, []);
 
     // Calculate total unread count
-    const totalUnreadCount = unreadCounts.messages + unreadCounts.requests;
+    const totalUnreadCount = unreadCounts.requests;
 
     if (loading) {
         return (
