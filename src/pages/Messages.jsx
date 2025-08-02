@@ -65,7 +65,7 @@ export default function Messages() {
             } else {
                 // For leaders, count join requests
                 const joinRequestRes = await axios.get(`${url}/neighbour/join/request/${communityName}`);
-                requestCount = joinRequestRes.data.requests?.length || 0;
+                requestCount = joinRequestRes.data.requests.rows || 0;
             }
 
             setUnreadCounts({
@@ -165,9 +165,9 @@ export default function Messages() {
                                 >
                                     <i className="bi bi-person-plus me-2"></i>
                                     {isLeader ? "Join Requests" : "Sent Requests"}
-                                    {unreadCounts.requests > 0 && (
+                                    {totalUnreadCount > 0 && (
                                         <Badge bg="danger" className="ms-2">
-                                            {unreadCounts.requests}
+                                            {totalUnreadCount}
                                         </Badge>
                                     )}
                                 </ToggleButton>

@@ -5,6 +5,7 @@ import { AuthContext } from "./AuthProvider";
 import GoogleMapDisplay from "./GoogleMapDisplay";
 import JoinConfirmModal from "./JoinConfirmModal";
 import JoinStatusModal from "./JoinStatusModal";
+import { NotificationContext } from "./NotificationProvider";
 
 export default function JoinCommunityMap({ show, onHide }) {
     const [communities, setCommunities] = useState([]);
@@ -15,8 +16,8 @@ export default function JoinCommunityMap({ show, onHide }) {
     const [selectedCommunity, setSelectedCommunity] = useState(null);
     const [joinResponse, setJoinResponse] = useState(null);
     const [notificationStatus, setNotificationStatus] = useState('show')
-
     const { currentUser } = useContext(AuthContext);
+    const { triggerRefresh } = useContext(NotificationContext);
 
     useEffect(() => {
         if (show) {
@@ -72,6 +73,7 @@ export default function JoinCommunityMap({ show, onHide }) {
                     community_name: selectedCommunity,
                 }
             );
+            triggerRefresh()
             setJoinResponse('success');
         } catch (err) {
             console.error("Error joining community:", err);

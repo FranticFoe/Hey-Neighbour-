@@ -64,12 +64,6 @@ export default function UserLayout() {
             }
         }
 
-        const interval = setInterval(() => {
-            if (currentUsername) {
-                fetchUnreadCount();
-            }
-        }, 300000);
-
 
         if (username) {
             fetchUnreadCount();

@@ -160,10 +160,10 @@ export default function SentRequestTab({ communityName, currentUsername, onUnrea
     return (
         <div className="sent-requests-container">
             <div className="d-flex justify-content-between align-items-center mb-3">
-                <h4 className="mb-0">Your Join Requests</h4>
+                <h4 className="mb-0">Your Sent Requests</h4>
                 <Badge bg="secondary" className="requests-count">
                     {count !== 0 && (
-                        <p style={{ margin: 0 }}>Total: {count}</p>
+                        <p style={{ margin: 0 }}>{count} Total </p>
                     )}
                 </Badge>
             </div>

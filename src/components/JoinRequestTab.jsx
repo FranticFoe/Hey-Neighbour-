@@ -12,7 +12,8 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
     const [actionLoading, setActionLoading] = useState({});
     const [markingAsRead, setMarkingAsRead] = useState({});
     const [message, setMessage] = useState(null);
-    const { refreshKey, triggerRefresh } = useContext(NotificationContext);
+    const { triggerRefresh } = useContext(NotificationContext);
+    const [count, setCount] = useState(0)
 
     const fetchJoinRequests = async () => {
         try {
@@ -24,11 +25,12 @@ export default function JoinRequestsTab({ communityName, currentUsername, onUnre
 
             // Calculate unread count based on leader_has_read
             const unreadCount = fetchedRequests.filter(req => !req.leader_has_read).length;
-
+            console.log("unreadcount", unreadCount)
             // Notify parent component about unread count
             if (onUnreadCountChange) {
                 onUnreadCountChange(unreadCount);
             }
+            setCount(unreadCount)
         } catch (err) {
             console.error("Failed to fetch requests", err);
         } finally {
