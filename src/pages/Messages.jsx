@@ -51,10 +51,6 @@ export default function Messages() {
         if (!username || !communityName) return;
 
         try {
-            // Fetch message unread count
-            const messageRes = await axios.get(`${url}/neighbour/unread_count`, {
-                params: { username, community_name: communityName }
-            });
 
             // Fetch request unread count (for sent requests)
             let requestCount = 0;
@@ -92,12 +88,6 @@ export default function Messages() {
         }));
     }, []);
 
-    const handleMessageUnreadCountChange = useCallback((count) => {
-        setUnreadCounts(prev => ({
-            ...prev,
-            messages: count
-        }));
-    }, []);
 
     // Calculate total unread count
     const totalUnreadCount = unreadCounts.requests;
@@ -157,20 +147,35 @@ export default function Messages() {
                                         </Badge>
                                     )}
                                 </ToggleButton>
-                                <ToggleButton
-                                    id="tab-requests"
-                                    value="inbox"
-                                    variant="outline-primary"
-                                    className="px-4 py-2"
-                                >
-                                    <i className="bi bi-person-plus me-2"></i>
-                                    {isLeader ? "Join Requests" : "Sent Requests"}
-                                    {totalUnreadCount > 0 && (
-                                        <Badge bg="danger" className="ms-2">
-                                            {totalUnreadCount}
-                                        </Badge>
-                                    )}
-                                </ToggleButton>
+                                {(isLeader || !communityName) && (
+                                    <ToggleButton
+                                        id="tab-requests"
+                                        value="inbox"
+                                        variant="outline-primary"
+                                        className="px-4 py-2"
+                                    >
+                                        {/* Icon and Label */}
+                                        {!communityName ? (
+                                            <>
+                                                <i className="bi bi-send me-2"></i>
+                                                Sent Requests
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="bi bi-person-plus me-2"></i>
+                                                Join Requests
+                                            </>
+                                        )}
+
+                                        {/* Badge */}
+                                        {totalUnreadCount > 0 && (
+                                            <Badge bg="danger" className="ms-2">
+                                                {totalUnreadCount}
+                                            </Badge>
+                                        )}
+                                    </ToggleButton>
+                                )}
+
                             </ToggleButtonGroup>
                         </div>
 
@@ -208,19 +213,19 @@ export default function Messages() {
 
                             {mailTab === "inbox" && (
                                 <div className="tab-pane fade show active">
-                                    {isLeader ? (
-                                        <JoinRequestsTab
-                                            communityName={communityName}
-                                            currentUsername={username}
-                                            onUnreadCountChange={handleRequestUnreadCountChange}
-                                        />
-                                    ) : (
+                                    {!communityName ? (
                                         <SentRequestTab
                                             communityName={communityName}
                                             currentUsername={username}
                                             onUnreadCountChange={handleRequestUnreadCountChange}
                                         />
-                                    )}
+                                    ) : isLeader ? (
+                                        <JoinRequestsTab
+                                            communityName={communityName}
+                                            currentUsername={username}
+                                            onUnreadCountChange={handleRequestUnreadCountChange}
+                                        />
+                                    ) : null}
                                 </div>
                             )}
                         </div>
