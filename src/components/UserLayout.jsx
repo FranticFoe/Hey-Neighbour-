@@ -11,8 +11,7 @@ export default function UserLayout() {
     const location = useLocation()
     const [count, setCount] = useState(0);
     const [, setIsLeader] = useState(false);
-    const { currentUser } = useContext(AuthContext);
-    const [communityName, setCommunityName] = useState("");
+    const { currentUser, communityName } = useContext(AuthContext);
     const username = currentUser?.displayName;
     const url = "https://neighbour-api.vercel.app"
     const { refreshKey } = useContext(NotificationContext);
@@ -37,7 +36,6 @@ export default function UserLayout() {
             try {
                 const res = await axios.get(`${url}/neighbour/community/${username}`);
                 const name = res.data.community[0]?.community_name;
-                setCommunityName(name);
                 // Check if user is leader
                 const leaderRes = await axios.get(
                     `${url}/neighbour/isLeader/${username}/community/${name}`
@@ -54,6 +52,7 @@ export default function UserLayout() {
 
     useEffect(() => {
         async function fetchUnreadCount() {
+            console.log("communityName:", communityName)
             try {
                 const res = await axios.get(`${url}/neighbour/unread_count`, {
                     params: { username, community_name: communityName }

@@ -4,13 +4,15 @@ import axios from "axios";
 import { AuthContext } from "../components/AuthProvider";
 import { Button, ToggleButton, ToggleButtonGroup, Badge } from "react-bootstrap";
 import SentRequestTab from "../components/SentRequestsTab";
+import { NotificationContext } from "../components/NotificationProvider";
 
 export default function Messages() {
-    const [communityName, setCommunityName] = useState("");
-    const { currentUser } = useContext(AuthContext);
+    const { currentUser, communityName } = useContext(AuthContext);
     const username = currentUser?.displayName;
     const [isLeader, setIsLeader] = useState(false);
     const [mailTab, setMailTab] = useState("messages");
+    const [count, setCount] = useState(0);
+    const { refreshKey } = useContext(NotificationContext);
     const [unreadCounts, setUnreadCounts] = useState({
         messages: 0,
         requests: 0
@@ -27,7 +29,6 @@ export default function Messages() {
                 setLoading(true);
                 const res = await axios.get(`${url}/neighbour/community/${username}`);
                 const name = res.data.community[0]?.community_name;
-                setCommunityName(name);
 
                 // Check if user is leader
                 if (name) {
@@ -45,6 +46,25 @@ export default function Messages() {
 
         fetchCommunityData();
     }, [username]);
+
+    useEffect(() => {
+        async function fetchUnreadCount() {
+            console.log("communityName:", communityName)
+            try {
+                const res = await axios.get(`${url}/neighbour/unread_count`, {
+                    params: { username, community_name: communityName }
+                });
+                setCount(parseInt(res.data.unread_count || 0));
+            } catch (err) {
+                console.error("Failed to fetch unread count", err);
+            }
+        }
+
+
+        if (username) {
+            fetchUnreadCount();
+        }
+    }, [username, communityName, refreshKey]);
 
     // Fetch unread counts
     const fetchUnreadCounts = useCallback(async () => {
@@ -90,7 +110,7 @@ export default function Messages() {
 
 
     // Calculate total unread count
-    const totalUnreadCount = unreadCounts.requests;
+    const totalUnreadCount = count;
 
     if (loading) {
         return (
