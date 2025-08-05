@@ -4,6 +4,7 @@ import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../components/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 export default function Authenticate() {
     const navigate = useNavigate()
@@ -17,6 +18,49 @@ export default function Authenticate() {
     const [showPasswordError, setShowPasswordError] = useState(false);
 
     const url = "https://neighbour-api.vercel.app"
+
+    const provider = new GoogleAuthProvider();
+    const handleGoogleLogIn = async (e) => {
+        e.preventDefault();
+        try {
+            provider.setCustomParameters({
+                prompt: "select_account", // Forces account chooser popup
+            });
+            const res = await signInWithPopup(getAuth(), provider);
+            console.log("gmail sign in:", res)
+            console.log("usergmail:", res.user.email)
+            console.log("username:", res.user.displayName)
+            const email = (res.user.email)
+            const username = (res.user.displayName)
+            const checkExist = await axios.get(`${url}/checkGmailsignin/${email}`)
+            console.log(checkExist)
+            if (checkExist.data) {
+                try {
+                    const backendRes = await axios.post(`${url}/signup`, { email, username });
+                    if (backendRes.data) {
+                        try {
+                            const firebaseRes = await createUserWithEmailAndPassword(auth, email, password);
+                            console.log(firebaseRes.user);
+                            resetFields();
+
+                            await updateProfile(auth.currentUser, {
+                                displayName: username,
+                            });
+                            console.log("Profile updated successfully");
+
+                        } catch (err) {
+                            console.error("Error in Firebase sign up:", err);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Signup error (backend):", err);
+                }
+            };
+        } catch (err) {
+            console.error("Error signing in with Google", err);
+        }
+    };
+
 
     useEffect(() => {
         if (currentUser != null) navigate("/user")
@@ -114,7 +158,7 @@ export default function Authenticate() {
                         </h3>
                         <p className="text-muted small">
                             {mode === "login"
-                                ? "Log in to book your sessions"
+                                ? <p className="text-center">Sign in to Hey Neighbour with one of the options below or your credentials.</p>
                                 : "Sign up to get started"}
                         </p>
                     </div>
@@ -149,18 +193,41 @@ export default function Authenticate() {
                         className="d-grid gap-3"
                     >
                         {mode === "login" ? (
-                            <Form.Group>
-                                <Form.Label className="text-muted small">Email or Username</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    placeholder="Enter email or username"
-                                    value={identifier}
-                                    onChange={(e) => setIdentifier(e.target.value)}
-                                    required
-                                />
-                            </Form.Group>
-                        ) : (
                             <>
+                                <Button onClick={handleGoogleLogIn} style={{ fontFamily: "sans-serif" }} className="rounded-pill d-flex justify-content-center align-items-center gap-2" variant="outline-dark"><i className="bi bi-google" ></i> Continue with Google</Button>
+                                <div style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    textAlign: "center",
+                                    margin: "1rem 0"
+                                }}>
+                                    <div style={{ flex: 1, borderBottom: "1px solid #ccc" }}></div>
+                                    <div style={{ padding: "0 10px", fontFamily: "sans-serif" }}>or</div>
+                                    <div style={{ flex: 1, borderBottom: "1px solid #ccc" }}></div>
+                                </div>
+                                <Form.Group>
+                                    <Form.Label className="text-muted small">Email or Username</Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        placeholder="Enter email or username"
+                                        value={identifier}
+                                        onChange={(e) => setIdentifier(e.target.value)}
+                                        required
+                                    />
+                                </Form.Group>
+                            </>) : (
+                            <>
+                                <Button onClick={handleGoogleLogIn} style={{ fontFamily: "sans-serif" }} className="rounded-pill d-flex justify-content-center align-items-center gap-2" variant="outline-dark"><i className="bi bi-google" ></i> Sign up with Google</Button>
+                                <div style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    textAlign: "center",
+                                    margin: "1rem 0"
+                                }}>
+                                    <div style={{ flex: 1, borderBottom: "1px solid #ccc" }}></div>
+                                    <div style={{ padding: "0 10px", fontFamily: "sans-serif" }}>or</div>
+                                    <div style={{ flex: 1, borderBottom: "1px solid #ccc" }}></div>
+                                </div>
                                 <Form.Group>
                                     <Form.Label className="text-muted small">Email</Form.Label>
                                     <Form.Control

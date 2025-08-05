@@ -40,7 +40,7 @@ export default function UserLayout() {
                 const leaderRes = await axios.get(
                     `${url}/neighbour/isLeader/${username}/community/${name}`
                 );
-                console.log("leaderRes", leaderRes)
+
                 setIsLeader(leaderRes.data.status);
 
             } catch (err) {
