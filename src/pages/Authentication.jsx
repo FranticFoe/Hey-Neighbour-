@@ -1,5 +1,5 @@
 import { Button, Col, Image, Row, Modal, Form, Container, Card, ToggleButtonGroup, ToggleButton } from "react-bootstrap";
-import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { createUserWithEmailAndPassword, getAuth, signInWithEmailAndPassword, updateProfile, signInWithRedirect, getRedirectResult } from "firebase/auth";
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../components/AuthProvider";
 import { useNavigate } from "react-router-dom";
@@ -20,20 +20,55 @@ export default function Authenticate() {
     const url = "https://neighbour-api.vercel.app"
 
     const provider = new GoogleAuthProvider();
+
     const handleGoogleLogIn = async (e) => {
         e.preventDefault();
         try {
             provider.setCustomParameters({
                 prompt: "select_account", // Forces account chooser popup
             });
-            const res = await signInWithPopup(getAuth(), provider);
-            console.log("gmail sign in:", res)
-            console.log("usergmail:", res.user.email)
-            console.log("username:", res.user.displayName)
-            const email = (res.user.email)
-            const username = (res.user.displayName)
-            const checkExist = await axios.get(`${url}/checkGmailsignin/${email}`)
-            console.log(checkExist)
+
+            const auth = getAuth();
+
+            if (window.innerWidth >= 1024) {
+                // Desktop/laptop → use popup
+                const res = await signInWithPopup(auth, provider);
+                await processGoogleUser(res.user);
+            } else {
+                // Tablet/mobile → use redirect
+                await signInWithRedirect(auth, provider);
+            }
+        } catch (err) {
+            console.error("Error signing in with Google", err);
+        }
+    };
+
+    // Handle redirect results for mobile/tablet
+    useEffect(() => {
+        const auth = getAuth();
+        getRedirectResult(auth)
+            .then(async (result) => {
+                if (result && result.user) {
+                    await processGoogleUser(result.user);
+                }
+            })
+            .catch((err) => {
+                console.error("Redirect result error:", err);
+            });
+    }, []);
+
+    async function processGoogleUser(user) {
+        console.log("gmail sign in:", user);
+        console.log("usergmail:", user.email);
+        console.log("username:", user.displayName);
+
+        const email = user.email;
+        const username = user.displayName;
+
+        try {
+            const checkExist = await axios.get(`${url}/checkGmailsignin/${email}`);
+            console.log(checkExist);
+
             if (checkExist.data) {
                 try {
                     const backendRes = await axios.post(`${url}/signup`, { email, username });
@@ -47,7 +82,6 @@ export default function Authenticate() {
                                 displayName: username,
                             });
                             console.log("Profile updated successfully");
-
                         } catch (err) {
                             console.error("Error in Firebase sign up:", err);
                         }
@@ -55,11 +89,11 @@ export default function Authenticate() {
                 } catch (err) {
                     console.error("Signup error (backend):", err);
                 }
-            };
+            }
         } catch (err) {
-            console.error("Error signing in with Google", err);
+            console.error("Error checking Gmail sign-in:", err);
         }
-    };
+    }
 
 
     useEffect(() => {
