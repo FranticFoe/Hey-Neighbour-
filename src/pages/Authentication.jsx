@@ -5,6 +5,8 @@ import { AuthContext } from "../components/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import axios from "axios"
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { auth } from "../firebase";
+
 
 export default function Authenticate() {
     const navigate = useNavigate()
@@ -12,9 +14,7 @@ export default function Authenticate() {
     const [email, setEmail] = useState("")
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [mode, setMode] = useState("login");
-    const auth = getAuth();
-    const { currentUser } = useContext(AuthContext)
+    const [mode, setMode] = useState("login"); const { currentUser } = useContext(AuthContext)
     const [showPasswordError, setShowPasswordError] = useState(false);
 
     const url = "https://neighbour-api.vercel.app"
@@ -60,7 +60,6 @@ export default function Authenticate() {
             console.error("Error signing in with Google", err);
         }
     };
-
 
     useEffect(() => {
         if (currentUser != null) navigate("/user")
