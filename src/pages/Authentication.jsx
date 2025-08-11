@@ -21,64 +21,32 @@ export default function Authenticate() {
 
     const provider = new GoogleAuthProvider();
 
-    const handleGoogleLogIn = async (e) => {
-        e.preventDefault();
+    async function processGoogleUser(res) {
         try {
-            provider.setCustomParameters({
-                prompt: "select_account", // Forces account chooser popup
-            });
+            // res might be a UserCredential (res.user) or a Firebase User (res).
+            const user = res && res.user ? res.user : res;
+            console.log("gmail sign in:", res);
+            console.log("usergmail:", user.email);
+            console.log("username:", user.displayName);
 
-            const auth = getAuth();
+            const email = user.email;
+            const username = user.displayName;
 
-            if (window.innerWidth >= 1024) {
-                // Desktop/laptop → use popup
-                const res = await signInWithPopup(auth, provider);
-                await processGoogleUser(res.user);
-            } else {
-                // Tablet/mobile → use redirect
-                await signInWithRedirect(auth, provider);
-            }
-        } catch (err) {
-            console.error("Error signing in with Google", err);
-        }
-    };
-
-    // Handle redirect results for mobile/tablet
-    useEffect(() => {
-        const auth = getAuth();
-        getRedirectResult(auth)
-            .then(async (result) => {
-                if (result && result.user) {
-                    await processGoogleUser(result.user);
-                }
-            })
-            .catch((err) => {
-                console.error("Redirect result error:", err);
-            });
-    }, []);
-
-    async function processGoogleUser(user) {
-        console.log("gmail sign in:", user);
-        console.log("usergmail:", user.email);
-        console.log("username:", user.displayName);
-
-        const email = user.email;
-        const username = user.displayName;
-
-        try {
-            const checkExist = await axios.get(`${url}/checkGmailsignin/${email}`);
+            // preserve your original backend checks
+            const checkExist = await axios.get(`${url}/checkGmailsignin/${encodeURIComponent(email)}`);
             console.log(checkExist);
-
             if (checkExist.data) {
                 try {
                     const backendRes = await axios.post(`${url}/signup`, { email, username });
                     if (backendRes.data) {
                         try {
-                            const firebaseRes = await createUserWithEmailAndPassword(auth, email, password);
+                            // NOTE: this mirrors your original code exactly.
+                            // createUserWithEmailAndPassword will fail if `password` is empty.
+                            const firebaseRes = await createUserWithEmailAndPassword(getAuth(), email, password);
                             console.log(firebaseRes.user);
                             resetFields();
 
-                            await updateProfile(auth.currentUser, {
+                            await updateProfile(getAuth().currentUser, {
                                 displayName: username,
                             });
                             console.log("Profile updated successfully");
@@ -91,9 +59,47 @@ export default function Authenticate() {
                 }
             }
         } catch (err) {
-            console.error("Error checking Gmail sign-in:", err);
+            console.error("Error processing Google user:", err);
         }
     }
+
+    const handleGoogleLogIn = async (e) => {
+        e.preventDefault();
+        try {
+            provider.setCustomParameters({
+                prompt: "select_account",
+            });
+
+            const auth = getAuth();
+
+            if (window.innerWidth >= 1024) {
+                // Desktop/laptop: use popup (immediate result)
+                const res = await signInWithPopup(auth, provider);
+                await processGoogleUser(res);
+            } else {
+                // Mobile/tablet: do a redirect (result handled in getRedirectResult)
+                await signInWithRedirect(auth, provider);
+            }
+        } catch (err) {
+            console.error("Error signing in with Google", err);
+        }
+    };
+
+    // On mount: handle the redirect result (mobile flow)
+    useEffect(() => {
+        const auth = getAuth();
+        getRedirectResult(auth)
+            .then(async (result) => {
+                if (result && result.user) {
+                    await processGoogleUser(result);
+                }
+            })
+            .catch((err) => {
+                // ignore user-cancelled redirect if needed, otherwise log
+                console.error("Redirect result error:", err);
+            });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
 
     useEffect(() => {
