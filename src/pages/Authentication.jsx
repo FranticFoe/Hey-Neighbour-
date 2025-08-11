@@ -36,7 +36,8 @@ export default function Authenticate() {
                 await processGoogleUser(res.user);
             } else {
                 // Tablet/mobile → use redirect
-                await signInWithRedirect(auth, provider);
+                const res = await signInWithRedirect(auth, provider);
+                await processGoogleUser(res.user);
             }
         } catch (err) {
             console.error("Error signing in with Google", err);
