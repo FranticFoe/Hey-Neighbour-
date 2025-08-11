@@ -23,41 +23,43 @@ export default function Authenticate() {
 
     const handleGoogleLogIn = async (e) => {
         e.preventDefault();
-        try {
-            provider.setCustomParameters({
-                prompt: "select_account", // Forces account chooser popup
-            });
+        provider.setCustomParameters({ prompt: "select_account" });
 
-            const auth = getAuth();
+        const auth = getAuth();
 
-            if (window.innerWidth >= 1024) {
-                // Desktop/laptop → use popup
-                const res = await signInWithPopup(auth, provider);
-                await processGoogleUser(res.user);
-            } else {
-                // Tablet/mobile → use redirect
-                const res = await signInWithRedirect(auth, provider);
-                await processGoogleUser(res.user);
-            }
-        } catch (err) {
-            console.error("Error signing in with Google", err);
+        if (window.innerWidth >= 1024) {
+            // Desktop → popup
+            const res = await signInWithPopup(auth, provider);
+            await processGoogleUser(res.user);
+            console.log(res)
+        } else {
+            // Mobile/tablet → redirect (no await for user here)
+            const res = await signInWithRedirect(auth, provider);
+            console.log("mobileInfo", auth, provider)
+            console.log("mobile res", res)
         }
     };
 
-    // Handle redirect results for mobile/tablet
+    // This runs AFTER returning from Google on mobile/tablet
     useEffect(() => {
         const auth = getAuth();
-        getRedirectResult(auth)
-            .then(async (result) => {
-                if (result && result.user) {
-                    await processGoogleUser(result.user);
-                }
-            })
-            .catch((err) => {
-                console.error("Redirect result error:", err);
-            });
-    }, []);
 
+        // We can't make useEffect's callback async, so define an async function inside
+        const checkRedirect = async () => {
+            try {
+                const result = await getRedirectResult(auth);
+                console.log("mobile login result", result);
+
+                if (result?.user) {
+                    await processGoogleUser(result.user); // same flow as popup
+                }
+            } catch (err) {
+                console.error("Redirect result error:", err);
+            }
+        };
+
+        checkRedirect();
+    }, []);
     async function processGoogleUser(user) {
         console.log("gmail sign in:", user);
         console.log("usergmail:", user.email);
@@ -71,30 +73,21 @@ export default function Authenticate() {
             console.log(checkExist);
 
             if (checkExist.data) {
-                try {
-                    const backendRes = await axios.post(`${url}/signup`, { email, username });
-                    if (backendRes.data) {
-                        try {
-                            const firebaseRes = await createUserWithEmailAndPassword(auth, email, password);
-                            console.log(firebaseRes.user);
-                            resetFields();
+                const backendRes = await axios.post(`${url}/signup`, { email, username });
+                if (backendRes.data) {
+                    const firebaseRes = await createUserWithEmailAndPassword(auth, email, password);
+                    console.log(firebaseRes.user);
+                    resetFields();
 
-                            await updateProfile(auth.currentUser, {
-                                displayName: username,
-                            });
-                            console.log("Profile updated successfully");
-                        } catch (err) {
-                            console.error("Error in Firebase sign up:", err);
-                        }
-                    }
-                } catch (err) {
-                    console.error("Signup error (backend):", err);
+                    await updateProfile(auth.currentUser, { displayName: username });
+                    console.log("Profile updated successfully");
                 }
             }
         } catch (err) {
-            console.error("Error checking Gmail sign-in:", err);
+            console.error("Error processing Google user:", err);
         }
     }
+
 
 
     useEffect(() => {
@@ -193,7 +186,7 @@ export default function Authenticate() {
                         </h3>
                         <p className="text-muted small">
                             {mode === "login"
-                                ? <p className="text-center">Sign in to Hey Neighbour with one of the options below or your credentials.</p>
+                                ? <span className="text-center">Sign in with one of the options below or your credentials.</span>
                                 : "Sign up to get started"}
                         </p>
                     </div>
